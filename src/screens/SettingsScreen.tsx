@@ -263,25 +263,25 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   card: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sectionDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    marginBottom: 16,
-    lineHeight: 20,
+    marginBottom: 14,
+    lineHeight: 18,
   },
   infoRow: {
     flexDirection: 'row',
@@ -291,11 +291,11 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   infoLabel: {
-    fontSize: 15,
+    fontSize: 13,
     color: COLORS.textSecondary,
   },
   infoValue: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text,
   },
@@ -317,19 +317,19 @@ const styles = StyleSheet.create({
   },
   appName: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 13,
     color: COLORS.text,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   appNameSelected: {
     color: COLORS.primary,
     fontWeight: '500',
   },
   timeLabel: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '500',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
     marginTop: 8,
   },
   timeOptions: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '10',
   },
   timeOptionText: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.text,
   },
   timeOptionTextSelected: {
@@ -363,14 +363,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   aboutText: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: 12,
+    lineHeight: 18,
+    marginBottom: 10,
   },
   contactText: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
-    lineHeight: 20,
+    lineHeight: 17,
   },
 });

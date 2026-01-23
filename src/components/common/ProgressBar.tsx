@@ -44,11 +44,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
   },
   percentage: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.primary,
   },

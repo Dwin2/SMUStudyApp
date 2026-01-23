@@ -69,12 +69,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   question: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 26,
+    marginBottom: 28,
+    lineHeight: 22,
   },
   optionsContainer: {
     flexDirection: 'row',
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   optionLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.text,
     fontWeight: '500',
     textAlign: 'center',

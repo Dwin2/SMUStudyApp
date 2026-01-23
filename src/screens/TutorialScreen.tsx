@@ -175,17 +175,17 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   stepTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   stepDescription: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 26,
+    lineHeight: 22,
     maxWidth: width * 0.85,
   },
   footer: {

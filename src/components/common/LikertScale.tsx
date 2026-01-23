@@ -59,10 +59,10 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   question: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.text,
-    marginBottom: 16,
-    lineHeight: 24,
+    marginBottom: 14,
+    lineHeight: 20,
   },
   scaleContainer: {
     flexDirection: 'row',
@@ -70,9 +70,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   option: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 2,
     borderColor: COLORS.border,
     justifyContent: 'center',
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
   },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   labelText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSecondary,
     maxWidth: '40%',
   },

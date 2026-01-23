@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

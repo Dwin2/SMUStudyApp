@@ -167,17 +167,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
   },
   participantId: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
     backgroundColor: COLORS.cardBackground,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
   progressCard: {
     marginBottom: 12,
@@ -188,10 +188,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   progressInfo: {
     flexDirection: 'row',
@@ -200,16 +200,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   daysRemaining: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
   },
   groupBadge: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.primary,
     backgroundColor: COLORS.primary + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     fontWeight: '600',
   },
   statsCard: {
@@ -225,14 +225,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: 'bold',
     color: COLORS.primary,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
-    marginTop: 4,
+    marginTop: 3,
   },
   statDivider: {
     width: 1,
@@ -243,35 +243,35 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   surveyTime: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '600',
     color: COLORS.warning,
     marginBottom: 4,
   },
   surveyNote: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
   },
   appsCard: {
     marginBottom: 12,
   },
   appsList: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: 8,
+    lineHeight: 18,
+    marginBottom: 6,
   },
   hoursCard: {
     marginBottom: 12,
   },
   hoursText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
   },
   hoursNote: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
   },
 });

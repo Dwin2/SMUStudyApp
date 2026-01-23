@@ -52,15 +52,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emotion: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: COLORS.text,
   },
   value: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.primary,
-    minWidth: 40,
+    minWidth: 36,
     textAlign: 'right',
   },
   slider: {
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   labelText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSecondary,
   },
 });

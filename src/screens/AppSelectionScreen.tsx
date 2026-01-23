@@ -111,16 +111,16 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginBottom: 24,
-    lineHeight: 24,
+    marginBottom: 20,
+    lineHeight: 20,
   },
   appsGrid: {
     flexDirection: 'row',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   appName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   selectionCount: {
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.primary,
     fontWeight: '600',
   },
@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   footerNote: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 10,
   },
 });

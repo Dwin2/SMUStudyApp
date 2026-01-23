@@ -178,10 +178,10 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   scrollView: {
     flex: 1,
@@ -191,16 +191,16 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sectionDescription: {
-    fontSize: 15,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginBottom: 20,
-    lineHeight: 22,
+    marginBottom: 16,
+    lineHeight: 19,
   },
   footer: {
     padding: 24,

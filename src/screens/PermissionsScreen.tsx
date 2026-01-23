@@ -206,16 +206,16 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: 28,
+    lineHeight: 20,
   },
   permissionsContainer: {
     flex: 1,
@@ -232,31 +232,31 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   permissionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   permissionDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
   },
   permissionButton: {
     marginTop: 16,
   },
   iosNote: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
-    marginTop: 12,
+    marginTop: 10,
     fontStyle: 'italic',
   },
   footer: {
     marginTop: 24,
   },
   footerNote: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 10,
   },
 });

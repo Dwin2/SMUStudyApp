@@ -129,30 +129,30 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginBottom: 24,
-    lineHeight: 24,
+    marginBottom: 20,
+    lineHeight: 20,
   },
   card: {
     marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
   },
   cardDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '10',
   },
   timeOptionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: COLORS.text,
   },
@@ -192,10 +192,10 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.text,
-    marginLeft: 12,
-    lineHeight: 20,
+    marginLeft: 10,
+    lineHeight: 18,
   },
   button: {
     marginTop: 8,

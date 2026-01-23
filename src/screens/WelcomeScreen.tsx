@@ -102,25 +102,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logo: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.textSecondary,
   },
   content: {
     flex: 1,
   },
   welcomeText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
@@ -133,15 +133,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   participantInfo: {
     alignItems: 'center',
@@ -151,12 +151,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   participantLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
     marginBottom: 4,
   },
   participantId: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary,
     letterSpacing: 2,

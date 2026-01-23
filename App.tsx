@@ -98,21 +98,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logo: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   loadingTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   spinner: {
     marginBottom: 16,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.textSecondary,
   },
 });
