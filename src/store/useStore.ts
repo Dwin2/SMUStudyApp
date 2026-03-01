@@ -82,6 +82,7 @@ export const useStore = create<AppState>()(
       sampling: {
         promptsToday: 0,
         lastPromptTime: null,
+        lastResetDate: null,
         activeSessions: [],
       },
       currentPromptPlatform: null,
@@ -112,19 +113,16 @@ export const useStore = create<AppState>()(
 
           // Reset daily sampling if it's a new day
           const state = get();
-          const lastPromptDate = state.sampling.lastPromptTime;
-          if (lastPromptDate) {
-            const today = new Date();
-            const lastDate = new Date(lastPromptDate);
-            if (today.toDateString() !== lastDate.toDateString()) {
-              set({
-                sampling: {
-                  ...state.sampling,
-                  promptsToday: 0,
-                  lastPromptTime: null,
-                },
-              });
-            }
+          const todayStr = new Date().toISOString().slice(0, 10);
+          if (state.sampling.lastResetDate !== todayStr) {
+            set({
+              sampling: {
+                ...state.sampling,
+                promptsToday: 0,
+                lastPromptTime: null,
+                lastResetDate: todayStr,
+              },
+            });
           }
 
           set({
@@ -243,8 +241,21 @@ export const useStore = create<AppState>()(
         const { user, sampling } = get();
         if (!user) return false;
 
-        // Check daily limit
-        if (sampling.promptsToday >= APP_CONFIG.MAX_PROMPTS_PER_DAY) {
+        const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+        // Auto-reset daily counter if it's a new day
+        if (sampling.lastResetDate !== todayStr) {
+          set((state) => ({
+            sampling: {
+              ...state.sampling,
+              promptsToday: 0,
+              lastPromptTime: null,
+              lastResetDate: todayStr,
+            },
+          }));
+          // Re-read after reset — daily limit is now 0, so pass through
+        } else if (sampling.promptsToday >= APP_CONFIG.MAX_PROMPTS_PER_DAY) {
+          // Check daily limit (only if we haven't just reset)
           return false;
         }
 
@@ -262,10 +273,12 @@ export const useStore = create<AppState>()(
           return false;
         }
 
-        // Check minimum time between prompts
-        if (sampling.lastPromptTime) {
+        // Check minimum time between prompts (skip check if just reset)
+        const effectiveLastPrompt =
+          sampling.lastResetDate !== todayStr ? null : sampling.lastPromptTime;
+        if (effectiveLastPrompt) {
           const timeSinceLastPrompt =
-            now.getTime() - new Date(sampling.lastPromptTime).getTime();
+            now.getTime() - new Date(effectiveLastPrompt).getTime();
           const minInterval = APP_CONFIG.MIN_HOURS_BETWEEN_PROMPTS * 60 * 60 * 1000;
           if (timeSinceLastPrompt < minInterval) {
             return false;
@@ -276,21 +289,25 @@ export const useStore = create<AppState>()(
       },
 
       recordPromptShown: () => {
+        const todayStr = new Date().toISOString().slice(0, 10);
         set((state) => ({
           sampling: {
             ...state.sampling,
             promptsToday: state.sampling.promptsToday + 1,
             lastPromptTime: new Date(),
+            lastResetDate: todayStr,
           },
         }));
       },
 
       resetDailySampling: () => {
+        const todayStr = new Date().toISOString().slice(0, 10);
         set((state) => ({
           sampling: {
             ...state.sampling,
             promptsToday: 0,
             lastPromptTime: null,
+            lastResetDate: todayStr,
           },
         }));
       },

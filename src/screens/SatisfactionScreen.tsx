@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { SatisfactionPrompt } from '../components/prompts';
 import { useStore } from '../store/useStore';
@@ -16,19 +16,38 @@ export const SatisfactionScreen: React.FC<SatisfactionScreenProps> = ({
   route,
 }) => {
   const { platform, sessionId } = route.params;
-  const { saveSatisfactionResponse, endAppSession } = useStore();
+  const { saveSatisfactionResponse, endAppSession, getActiveSession } = useStore();
 
-  const handleSubmit = async (satisfaction: string) => {
-    await saveSatisfactionResponse(platform, sessionId, satisfaction);
-    endAppSession(sessionId);
+  // Only show satisfaction survey if a prompt was shown during this session
+  const session = getActiveSession(platform);
+  const promptWasShown = useRef(session?.promptShown ?? false).current;
 
-    // Navigate back
+  useEffect(() => {
+    if (!promptWasShown) {
+      // No prompt was shown — end the session silently and navigate away
+      endAppSession(sessionId);
+      dismiss();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const dismiss = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
       navigation.navigate('MainTabs');
     }
   };
+
+  const handleSubmit = async (satisfaction: string) => {
+    await saveSatisfactionResponse(platform, sessionId, satisfaction);
+    endAppSession(sessionId);
+    dismiss();
+  };
+
+  if (!promptWasShown) {
+    return null;
+  }
 
   return <SatisfactionPrompt platform={platform} onSubmit={handleSubmit} />;
 };

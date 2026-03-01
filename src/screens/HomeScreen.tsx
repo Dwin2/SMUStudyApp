@@ -147,6 +147,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             Prompts will only appear during these hours.
           </Text>
         </Card>
+
+        {/* Developer / Demo Panel */}
+        <Card style={styles.devCard}>
+          <View style={styles.progressHeader}>
+            <MaterialCommunityIcons name="flask-outline" size={24} color={COLORS.warning} />
+            <Text style={styles.cardTitle}>Developer Testing</Text>
+          </View>
+          <Text style={styles.hoursNote}>
+            Simulate app opens, inspect sampling state, and trigger surveys for demo purposes.
+          </Text>
+          <Button
+            title="Open Testing Panel"
+            mode="outlined"
+            onPress={() => navigation.navigate('Testing')}
+          />
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -263,6 +279,11 @@ const styles = StyleSheet.create({
   },
   hoursCard: {
     marginBottom: 12,
+  },
+  devCard: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '55',
   },
   hoursText: {
     fontSize: 16,

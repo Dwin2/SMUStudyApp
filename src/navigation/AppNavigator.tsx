@@ -17,6 +17,7 @@ import {
   PromptScreen,
   SatisfactionScreen,
   ScheduledSurveyScreen,
+  TestingScreen,
 } from '../screens';
 import { useStore } from '../store/useStore';
 import { COLORS } from '../constants';
@@ -170,6 +171,16 @@ export const AppNavigator: React.FC = () => {
           component={ScheduledSurveyScreen}
           options={{
             presentation: 'card',
+          }}
+        />
+
+        {/* Developer Testing Screen */}
+        <Stack.Screen
+          name="Testing"
+          component={TestingScreen}
+          options={{
+            presentation: 'card',
+            animation: 'slide_from_bottom',
           }}
         />
       </Stack.Navigator>

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { MotivationPrompt, NeutralPrompt } from '../components/prompts';
 import { useStore } from '../store/useStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types';
-import { Linking, Platform } from 'react-native';
+import { Linking } from 'react-native';
 import { SOCIAL_MEDIA_APPS } from '../constants';
 
 type PromptScreenProps = {
@@ -15,19 +15,31 @@ type PromptScreenProps = {
 
 export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route }) => {
   const { platform, sessionId } = route.params;
-  const { user, saveMRPResponse, saveNPResponse, recordPromptShown } = useStore();
+  const { user, sampling, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt } =
+    useStore();
 
   const isTreatmentGroup = user?.group === 'treatment';
+  // Use a ref so the gate is evaluated only once on mount
+  const shouldShow = useRef(canShowPrompt()).current;
+
+  useEffect(() => {
+    if (!shouldShow) {
+      // Sampling rules say skip — open the target app directly without a prompt
+      openTargetApp();
+    } else {
+      // Record the prompt as "sent" immediately (per study design: max 15 sent, not answered)
+      recordPromptShown();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleMRPSubmit = async (response: string) => {
     await saveMRPResponse(platform, sessionId, response);
-    recordPromptShown();
     openTargetApp();
   };
 
   const handleNPSubmit = async (question: string, response: string) => {
     await saveNPResponse(platform, sessionId, question, response);
-    recordPromptShown();
     openTargetApp();
   };
 
@@ -36,10 +48,8 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
   };
 
   const openTargetApp = () => {
-    // Find the app's URL scheme
     const app = SOCIAL_MEDIA_APPS.find((a) => a.id === platform);
     if (app) {
-      // Try to open the app
       Linking.canOpenURL(app.urlScheme).then((supported) => {
         if (supported) {
           Linking.openURL(app.urlScheme);
@@ -47,13 +57,17 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
       });
     }
 
-    // Go back or to home
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
       navigation.navigate('MainTabs');
     }
   };
+
+  // While the effect runs (before we know if we should show), render nothing
+  if (!shouldShow) {
+    return null;
+  }
 
   if (isTreatmentGroup) {
     return (

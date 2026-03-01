@@ -120,6 +120,7 @@ export type RootStackParamList = {
   ScheduledSurvey: { surveyTime: '5pm' | '9pm' };
   EndlineSurvey: undefined;
   FollowupSurvey: undefined;
+  Testing: undefined;
 };
 
 // Social Media Platform Types
@@ -137,5 +138,6 @@ export interface SocialMediaApp {
 export interface SamplingState {
   promptsToday: number;
   lastPromptTime: Date | null;
+  lastResetDate: string | null; // ISO date string "YYYY-MM-DD" for daily reset tracking
   activeSessions: AppSession[];
 }
