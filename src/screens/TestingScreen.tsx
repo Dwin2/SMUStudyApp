@@ -14,7 +14,6 @@ import { COLORS, APP_CONFIG, SOCIAL_MEDIA_APPS } from '../constants';
 import { Card, Button } from '../components/common';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 
 type TestingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Testing'>;
@@ -67,8 +66,7 @@ export const TestingScreen: React.FC<TestingScreenProps> = ({ navigation }) => {
   };
 
   const simulateAppOpen = (appId: string) => {
-    const sessionId = uuidv4();
-    startAppSession(appId);
+    const sessionId = startAppSession(appId);
 
     const eligible = canShowPrompt();
     const decision = eligible
