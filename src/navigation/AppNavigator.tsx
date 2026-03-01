@@ -1,9 +1,12 @@
 import React from 'react';
-import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
+
+// Exported so App.tsx can navigate from notification tap handlers
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 import {
   WelcomeScreen,
@@ -128,7 +131,7 @@ export const AppNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
         initialRouteName={getInitialRoute()}
         screenOptions={{

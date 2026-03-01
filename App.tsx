@@ -4,10 +4,15 @@ import { StatusBar } from 'expo-status-bar';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 
-import { AppNavigator } from './src/navigation/AppNavigator';
+import { AppNavigator, navigationRef } from './src/navigation/AppNavigator';
 import { useStore } from './src/store/useStore';
 import { COLORS } from './src/constants';
+import {
+  setupNotificationListeners,
+  scheduleScheduledSurveys,
+} from './src/services/notificationService';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -37,14 +42,33 @@ const LoadingScreen: React.FC = () => (
   </View>
 );
 
+// Navigate from a notification tap to the correct screen.
+// Called both when the app is in the foreground and when it's cold-started
+// from a notification tap.
+function handleNotificationResponse(response: Notifications.NotificationResponse) {
+  const data = response.notification.request.content.data as Record<string, any>;
+
+  if (!navigationRef.isReady()) return;
+
+  if (data?.type === 'scheduled_survey' && data?.surveyTime) {
+    navigationRef.navigate('ScheduledSurvey', {
+      surveyTime: data.surveyTime as '5pm' | '9pm',
+    });
+  } else if (data?.type === 'satisfaction' && data?.platform && data?.sessionId) {
+    navigationRef.navigate('Satisfaction', {
+      platform: data.platform as string,
+      sessionId: data.sessionId as string,
+    });
+  }
+}
+
 export default function App() {
-  const { initialize, isLoading } = useStore();
+  const { initialize, isLoading, user } = useStore();
   const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Initialize the app (auth, user data, etc.)
         await initialize();
       } catch (e) {
         console.warn('Error during app initialization:', e);
@@ -54,6 +78,30 @@ export default function App() {
     }
 
     prepare();
+  }, []);
+
+  // Schedule daily surveys whenever the user enters/is in the intervention phase.
+  // Runs on every app open so notifications stay scheduled even if the OS clears them.
+  useEffect(() => {
+    if (user?.studyPhase === 'intervention') {
+      scheduleScheduledSurveys().catch(console.warn);
+    }
+  }, [user?.studyPhase]);
+
+  // Wire up notification tap handler.
+  useEffect(() => {
+    // Handle tap if the app was opened cold from a notification
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleNotificationResponse(response);
+    });
+
+    // Handle taps while the app is running
+    const cleanup = setupNotificationListeners(
+      () => {}, // foreground notifications handled by system
+      handleNotificationResponse
+    );
+
+    return cleanup;
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
