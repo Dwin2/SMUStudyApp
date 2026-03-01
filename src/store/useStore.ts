@@ -22,7 +22,7 @@ import {
   randomlyAssignGroup,
   signInAnonymousUser,
 } from '../services/firebase';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 
 interface AppState {
   // Auth State
@@ -173,7 +173,7 @@ export const useStore = create<AppState>()(
 
       // Session Management
       startAppSession: (platform) => {
-        const sessionId = uuidv4();
+        const sessionId = Crypto.randomUUID();
         const newSession: AppSession = {
           id: sessionId,
           platform,

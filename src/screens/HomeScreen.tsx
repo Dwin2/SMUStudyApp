@@ -15,7 +15,7 @@ import { useStore } from '../store/useStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -50,8 +50,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const trackedApps = filteredApps.length > 0 ? filteredApps : SOCIAL_MEDIA_APPS;
 
   const handleAppTap = (appId: string) => {
-    const sessionId = uuidv4();
-    startAppSession(appId);
+    const sessionId = startAppSession(appId);
 
     if (canShowPrompt()) {
       // Show prompt first — PromptScreen will open the real app after
