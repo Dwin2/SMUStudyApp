@@ -7,12 +7,13 @@ import {
   ScrollView,
   Platform,
   Linking,
-  Image,
+  TouchableOpacity,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Button, Card } from '../components/common';
 import { COLORS, SOCIAL_MEDIA_APPS } from '../constants';
 import { useStore } from '../store/useStore';
-import { getIOSShortcutsInstructions } from '../services/appUsageService';
+import { getIOSShortcutsInstructions, getDeepLinkURL } from '../services/appUsageService';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,12 +26,21 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
   const { user } = useStore();
   const [currentAppIndex, setCurrentAppIndex] = useState(0);
   const [completedApps, setCompletedApps] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
 
   const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
     user?.settings.trackedApps.includes(app.id)
   );
 
   const currentApp = trackedApps[currentAppIndex];
+
+  const handleCopyURL = async () => {
+    if (!currentApp) return;
+    const url = getDeepLinkURL(currentApp.id);
+    await Clipboard.setStringAsync(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleOpenShortcuts = () => {
     Linking.openURL('shortcuts://');
@@ -40,15 +50,16 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
     if (currentApp && !completedApps.includes(currentApp.id)) {
       setCompletedApps([...completedApps, currentApp.id]);
     }
-
     if (currentAppIndex < trackedApps.length - 1) {
       setCurrentAppIndex(currentAppIndex + 1);
+      setCopied(false);
     }
   };
 
   const handleSkip = () => {
     if (currentAppIndex < trackedApps.length - 1) {
       setCurrentAppIndex(currentAppIndex + 1);
+      setCopied(false);
     }
   };
 
@@ -57,21 +68,22 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
   };
 
   const isLastApp = currentAppIndex === trackedApps.length - 1;
-  const allComplete = completedApps.length === trackedApps.length;
 
-  const instructions = currentApp ? getIOSShortcutsInstructions(currentApp.name) : [];
+  const instructions = currentApp
+    ? getIOSShortcutsInstructions(currentApp.name, currentApp.id)
+    : [];
 
   if (Platform.OS !== 'ios') {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.androidMessage}>
+        <View style={styles.centeredMessage}>
           <MaterialCommunityIcons name="check-circle" size={64} color={COLORS.success} />
-          <Text style={styles.androidTitle}>All Set!</Text>
-          <Text style={styles.androidText}>
+          <Text style={styles.centeredTitle}>All Set!</Text>
+          <Text style={styles.centeredText}>
             Android devices automatically detect when you open social media apps.
             No additional setup is required.
           </Text>
-          <Button title="Continue" onPress={handleFinish} style={styles.androidButton} />
+          <Button title="Continue" onPress={handleFinish} style={styles.centeredButton} />
         </View>
       </SafeAreaView>
     );
@@ -83,11 +95,11 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
         <View style={styles.header}>
           <Text style={styles.title}>Shortcuts Setup</Text>
           <Text style={styles.subtitle}>
-            Set up {currentAppIndex + 1} of {trackedApps.length}
+            App {currentAppIndex + 1} of {trackedApps.length}
           </Text>
         </View>
 
-        {/* Progress indicators */}
+        {/* Progress dots */}
         <View style={styles.progressContainer}>
           {trackedApps.map((app, index) => (
             <View
@@ -103,7 +115,7 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
 
         {currentApp && (
           <>
-            {/* Current App Card */}
+            {/* Current App */}
             <Card style={styles.appCard}>
               <View style={styles.appHeader}>
                 <View style={styles.appIconContainer}>
@@ -117,17 +129,43 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
               </View>
             </Card>
 
-            {/* Instructions */}
+            {/* URL to copy — the critical step */}
+            <Card style={styles.urlCard}>
+              <Text style={styles.urlLabel}>Step 9 — Copy this URL into the shortcut:</Text>
+              <View style={styles.urlRow}>
+                <Text style={styles.urlText} selectable>
+                  {getDeepLinkURL(currentApp.id)}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.copyBtn, copied && styles.copyBtnDone]}
+                  onPress={handleCopyURL}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name={copied ? 'check' : 'content-copy'}
+                    size={16}
+                    color={copied ? COLORS.success : COLORS.primary}
+                  />
+                  <Text style={[styles.copyBtnText, copied && styles.copyBtnTextDone]}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.urlWarning}>
+                ⚠️  Use the "Open URL" action — NOT "Open App". "Open App" won't pass this address and nothing will happen when you open {currentApp.name}.
+              </Text>
+            </Card>
+
+            {/* Step-by-step instructions */}
             <Card style={styles.instructionsCard}>
-              <Text style={styles.instructionsTitle}>Follow these steps:</Text>
-              {instructions.map((instruction, index) => (
-                <Text key={index} style={styles.instruction}>
-                  {instruction}
+              <Text style={styles.instructionsTitle}>Full setup steps:</Text>
+              {instructions.map((step, index) => (
+                <Text key={index} style={styles.instructionLine}>
+                  {step}
                 </Text>
               ))}
             </Card>
 
-            {/* Open Shortcuts Button */}
             <Button
               title="Open Shortcuts App"
               onPress={handleOpenShortcuts}
@@ -135,24 +173,22 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
               style={styles.openButton}
             />
 
-            {/* Action Buttons */}
             <View style={styles.actionButtons}>
               <Button
                 title="Skip This App"
-                onPress={handleSkip}
+                onPress={isLastApp ? handleFinish : handleSkip}
                 mode="outlined"
                 style={styles.skipButton}
               />
               <Button
-                title={isLastApp ? 'Finish Setup' : "Done, Next App"}
-                onPress={isLastApp && allComplete ? handleFinish : handleMarkComplete}
+                title={isLastApp ? 'Finish Setup' : 'Done, Next →'}
+                onPress={isLastApp ? handleFinish : handleMarkComplete}
                 style={styles.nextButton}
               />
             </View>
           </>
         )}
 
-        {/* Skip All Option */}
         <Button
           title="Skip All & Continue"
           onPress={handleFinish}
@@ -161,8 +197,7 @@ export const ShortcutsSetupScreen: React.FC<ShortcutsSetupScreenProps> = ({ navi
         />
 
         <Text style={styles.noteText}>
-          Note: You can always set up these automations later from the Settings screen.
-          The app will still work, but you'll need to manually open it before using social media.
+          You can set up these automations later from Settings too.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -224,7 +259,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.success,
   },
   appCard: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   appHeader: {
     flexDirection: 'row',
@@ -244,65 +279,119 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
+  urlCard: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '50',
+  },
+  urlLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  urlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+    gap: 8,
+  },
+  urlText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: COLORS.primary,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  copyBtnDone: {
+    borderColor: COLORS.success,
+  },
+  copyBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  copyBtnTextDone: {
+    color: COLORS.success,
+  },
+  urlWarning: {
+    fontSize: 12,
+    color: COLORS.warning ?? '#f59e0b',
+    lineHeight: 17,
+  },
   instructionsCard: {
     marginBottom: 16,
   },
   instructionsTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  instruction: {
-    fontSize: 14,
+  instructionLine: {
+    fontSize: 13,
     color: COLORS.text,
-    lineHeight: 24,
-    marginBottom: 2,
+    lineHeight: 22,
   },
   openButton: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   actionButtons: {
     flexDirection: 'row',
     marginBottom: 16,
+    gap: 8,
   },
   skipButton: {
     flex: 1,
-    marginRight: 8,
   },
   nextButton: {
     flex: 2,
   },
   skipAllButton: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   noteText: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
-  androidMessage: {
+  centeredMessage: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
-  androidTitle: {
+  centeredTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: COLORS.text,
     marginTop: 24,
     marginBottom: 16,
   },
-  androidText: {
+  centeredText: {
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
-  androidButton: {
+  centeredButton: {
     minWidth: 200,
   },
 });

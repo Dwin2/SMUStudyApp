@@ -181,32 +181,59 @@ export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navi
     </View>
   );
 
+  const FREQUENCY_LABELS = ['Never', 'Rarely', 'Sometimes', 'Often', 'Very often'];
+
   const renderPlatformFrequency = () => (
     <View>
       <Text style={styles.sectionTitle}>Platform Usage</Text>
       <Text style={styles.sectionDescription}>
-        How often do you use each of these platforms? (0 = Never, 4 = Very often)
+        How often do you use each of these platforms?
       </Text>
 
-      {SOCIAL_MEDIA_APPS.map((app) => (
-        <Card key={app.id} style={styles.platformCard}>
-          <View style={styles.platformHeader}>
-            <Text style={styles.platformName}>{app.name}</Text>
-            <Text style={styles.frequencyValue}>{platformFrequency[app.id]}</Text>
-          </View>
-          <View style={styles.frequencyButtons}>
-            {[0, 1, 2, 3, 4].map((value) => (
-              <Button
-                key={value}
-                title={value.toString()}
-                mode={platformFrequency[app.id] === value ? 'contained' : 'outlined'}
-                onPress={() => setPlatformFrequency({ ...platformFrequency, [app.id]: value })}
-                style={styles.frequencyButton}
-              />
-            ))}
-          </View>
-        </Card>
-      ))}
+      {SOCIAL_MEDIA_APPS.map((app) => {
+        const selected = platformFrequency[app.id];
+        return (
+          <Card key={app.id} style={styles.platformCard}>
+            <View style={styles.platformHeader}>
+              <Text style={styles.platformName}>{app.name}</Text>
+              <Text style={styles.frequencyLabel}>
+                {FREQUENCY_LABELS[selected]}
+              </Text>
+            </View>
+            <View style={styles.segmentedControl}>
+              {[0, 1, 2, 3, 4].map((value) => {
+                const active = selected === value;
+                const isFirst = value === 0;
+                const isLast = value === 4;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[
+                      styles.segment,
+                      isFirst && styles.segmentFirst,
+                      isLast && styles.segmentLast,
+                      active && styles.segmentActive,
+                      !isLast && styles.segmentBorderRight,
+                    ]}
+                    onPress={() =>
+                      setPlatformFrequency({ ...platformFrequency, [app.id]: value })
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                      {value}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={styles.segmentEndLabels}>
+              <Text style={styles.segmentEndLabel}>Never</Text>
+              <Text style={styles.segmentEndLabel}>Very often</Text>
+            </View>
+          </Card>
+        );
+      })}
     </View>
   );
 
@@ -368,25 +395,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   platformName: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
   },
-  frequencyValue: {
-    fontSize: 14,
-    fontWeight: '600',
+  frequencyLabel: {
+    fontSize: 13,
+    fontWeight: '500',
     color: COLORS.primary,
   },
-  frequencyButtons: {
+  segmentedControl: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+  },
+  segmentFirst: {
+    borderTopLeftRadius: 7,
+    borderBottomLeftRadius: 7,
+  },
+  segmentLast: {
+    borderTopRightRadius: 7,
+    borderBottomRightRadius: 7,
+  },
+  segmentBorderRight: {
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
+  segmentActive: {
+    backgroundColor: COLORS.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  segmentTextActive: {
+    color: '#fff',
+  },
+  segmentEndLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 5,
   },
-  frequencyButton: {
-    flex: 1,
-    marginHorizontal: 2,
+  segmentEndLabel: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
   },
   footer: {
     padding: 24,
