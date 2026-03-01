@@ -1,6 +1,5 @@
-import { Platform, Linking, NativeModules } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import { SOCIAL_MEDIA_APPS } from '../constants';
-import { useStore } from '../store/useStore';
 
 /**
  * App Usage Detection Service
@@ -24,30 +23,34 @@ export const IOS_URL_SCHEMES = SOCIAL_MEDIA_APPS.reduce((acc, app) => {
 }, {} as Record<string, string>);
 
 /**
- * Handle incoming deep link for iOS Shortcuts integration
- * Deep link format: smustudy://open?app=instagram
+ * Get the deep link URL for a given app platform ID.
+ * This is the exact URL the iOS Shortcut must open.
+ * Format: smustudy://open?platform=instagram
+ */
+export const getDeepLinkURL = (appId: string): string => {
+  return `smustudy://open?platform=${appId}`;
+};
+
+/**
+ * Handle incoming deep link for iOS Shortcuts integration.
+ * Expects: smustudy://open?platform=instagram
  */
 export const handleDeepLink = (url: string): { platform: string; sessionId: string } | null => {
   try {
     const parsedUrl = new URL(url);
 
     if (parsedUrl.protocol === 'smustudy:') {
-      const path = parsedUrl.hostname; // 'open' or 'close'
-      const app = parsedUrl.searchParams.get('app');
+      const platform = parsedUrl.searchParams.get('platform');
       const sessionId = parsedUrl.searchParams.get('sessionId') || `session-${Date.now()}`;
 
-      if (app) {
-        // Normalize app name to our app ID
-        const normalizedApp = app.toLowerCase().replace(/[^a-z]/g, '');
+      if (platform) {
+        const normalized = platform.toLowerCase().replace(/[^a-z]/g, '');
         const matchedApp = SOCIAL_MEDIA_APPS.find(
-          (a) => a.id === normalizedApp || a.name.toLowerCase().replace(/[^a-z]/g, '') === normalizedApp
+          (a) => a.id === normalized || a.name.toLowerCase().replace(/[^a-z]/g, '') === normalized
         );
 
         if (matchedApp) {
-          return {
-            platform: matchedApp.id,
-            sessionId,
-          };
+          return { platform: matchedApp.id, sessionId };
         }
       }
     }
@@ -134,40 +137,32 @@ export const getInstalledTrackedApps = async (): Promise<string[]> => {
 };
 
 /**
- * Instructions for iOS Shortcuts setup
- * Returns step-by-step instructions for users to set up automations
+ * Instructions for iOS Shortcuts setup.
+ * IMPORTANT: Uses "Open URL" action (not "Open App") so the deep link
+ * URL is delivered to the SMU Study app with the platform identifier.
  */
-export const getIOSShortcutsInstructions = (appName: string): string[] => {
+export const getIOSShortcutsInstructions = (appName: string, appId: string): string[] => {
+  const url = getDeepLinkURL(appId);
   return [
     `1. Open the Shortcuts app on your iPhone`,
     `2. Tap the "Automation" tab at the bottom`,
-    `3. Tap the "+" button to create a new automation`,
+    `3. Tap "+" to create a new automation`,
     `4. Select "App" under "Personal Automation"`,
-    `5. Select "${appName}" from the app list`,
-    `6. Make sure "Is Opened" is selected`,
-    `7. Tap "Next"`,
-    `8. Tap "Add Action"`,
-    `9. Search for "Open App" and select it`,
-    `10. Tap "App" and select "SMU Study"`,
-    `11. Tap "Next"`,
-    `12. Turn OFF "Ask Before Running"`,
-    `13. Tap "Done"`,
-    ``,
-    `Repeat these steps for each social media app you want to track.`,
+    `5. Choose "${appName}" from the list and tap "Next"`,
+    `6. Tap "New Blank Automation"`,
+    `7. Tap "Add Action"`,
+    `8. Search for "Open URL" and select it`,
+    `9. Tap the URL field and paste: ${url}`,
+    `10. Tap "Done" (top right)`,
+    `11. Turn OFF "Ask Before Running", then tap "Done"`,
   ];
 };
 
 /**
- * Generate Shortcuts automation URL (for one-tap setup)
- * Note: This requires the Shortcuts URL scheme which may have limitations
+ * Returns the deep link URL to display/copy on the setup screen.
  */
 export const getShortcutsURL = (appId: string): string => {
-  const app = SOCIAL_MEDIA_APPS.find((a) => a.id === appId);
-  if (!app) return '';
-
-  // This is a placeholder - actual implementation would require
-  // creating a .shortcut file or using the Shortcuts URL scheme
-  return `shortcuts://`;
+  return getDeepLinkURL(appId);
 };
 
 // Android-specific functions (would require native module)
