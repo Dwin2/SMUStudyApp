@@ -116,7 +116,7 @@ export type RootStackParamList = {
   Home: undefined;
   Settings: undefined;
   History: undefined;
-  Prompt: { platform: string; sessionId: string };
+  Prompt: { platform: string; sessionId: string; demo?: boolean };
   Satisfaction: { platform: string; sessionId: string };
   ScheduledSurvey: { surveyTime: '5pm' | '9pm' };
   EndlineSurvey: undefined;

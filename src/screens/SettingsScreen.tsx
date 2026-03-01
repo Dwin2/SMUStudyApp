@@ -10,7 +10,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { Button, Card } from '../components/common';
+import { Button, Card, TextInput } from '../components/common';
 import { COLORS, SOCIAL_MEDIA_APPS, APP_CONFIG } from '../constants';
 import { useStore } from '../store/useStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -38,6 +38,7 @@ const END_TIME_OPTIONS = [
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const { user, updateSettings } = useStore();
+  const [name, setName] = useState(user?.settings.name || '');
   const [trackedApps, setTrackedApps] = useState<string[]>(user?.settings.trackedApps || []);
   const [windowStart, setWindowStart] = useState(user?.settings.windowStart || APP_CONFIG.DEFAULT_WINDOW_START);
   const [windowEnd, setWindowEnd] = useState(user?.settings.windowEnd || APP_CONFIG.DEFAULT_WINDOW_END);
@@ -69,6 +70,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     }
 
     await updateSettings({
+      name: name.trim(),
       trackedApps,
       windowStart,
       windowEnd,
@@ -105,6 +107,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
         {/* Participant Info */}
         <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Participant Info</Text>
+          <Text style={styles.nameLabel}>Your name / nickname</Text>
+          <TextInput
+            value={name}
+            onChangeText={(t) => { setName(t); setHasChanges(true); }}
+            placeholder="e.g. Alex"
+            autoCapitalize="words"
+          />
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Participant ID</Text>
             <Text style={styles.infoValue}>{user?.participantId}</Text>
@@ -372,5 +381,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textSecondary,
     lineHeight: 17,
+  },
+  nameLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
   },
 });

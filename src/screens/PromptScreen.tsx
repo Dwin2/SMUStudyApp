@@ -14,19 +14,18 @@ type PromptScreenProps = {
 };
 
 export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route }) => {
-  const { platform, sessionId } = route.params;
-  const { user, sampling, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt } =
-    useStore();
+  const { platform, sessionId, demo } = route.params;
+  const { user, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt } = useStore();
 
   const isTreatmentGroup = user?.group === 'treatment';
-  // Use a ref so the gate is evaluated only once on mount
-  const shouldShow = useRef(canShowPrompt()).current;
+  // Demo mode always shows; live mode checks sampling rules once on mount
+  const shouldShow = useRef(demo ? true : canShowPrompt()).current;
 
   useEffect(() => {
     if (!shouldShow) {
       // Sampling rules say skip — open the target app directly without a prompt
       openTargetApp();
-    } else {
+    } else if (!demo) {
       // Record the prompt as "sent" immediately (per study design: max 15 sent, not answered)
       recordPromptShown();
     }
@@ -34,12 +33,12 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
   }, []);
 
   const handleMRPSubmit = async (response: string) => {
-    await saveMRPResponse(platform, sessionId, response);
+    if (!demo) await saveMRPResponse(platform, sessionId, response);
     openTargetApp();
   };
 
   const handleNPSubmit = async (question: string, response: string) => {
-    await saveNPResponse(platform, sessionId, question, response);
+    if (!demo) await saveNPResponse(platform, sessionId, question, response);
     openTargetApp();
   };
 
@@ -48,13 +47,14 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
   };
 
   const openTargetApp = () => {
-    const app = SOCIAL_MEDIA_APPS.find((a) => a.id === platform);
-    if (app) {
-      Linking.canOpenURL(app.urlScheme).then((supported) => {
-        if (supported) {
-          Linking.openURL(app.urlScheme);
-        }
-      });
+    if (!demo) {
+      // Live mode — actually open the real app
+      const app = SOCIAL_MEDIA_APPS.find((a) => a.id === platform);
+      if (app) {
+        Linking.canOpenURL(app.urlScheme).then((supported) => {
+          if (supported) Linking.openURL(app.urlScheme);
+        });
+      }
     }
 
     if (navigation.canGoBack()) {
@@ -64,7 +64,6 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
     }
   };
 
-  // While the effect runs (before we know if we should show), render nothing
   if (!shouldShow) {
     return null;
   }
