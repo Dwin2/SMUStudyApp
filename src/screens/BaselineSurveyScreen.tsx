@@ -7,13 +7,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { Button, Card, LikertScale, EmotionSlider, ProgressBar, TextInput } from '../components/common';
 import { COLORS, SMU_EXPERIENCE_QUESTIONS, WELLBEING_EMOTIONS, SOCIAL_MEDIA_APPS } from '../constants';
 import { useStore } from '../store/useStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
-import { Picker } from '@react-native-picker/picker';
 
 type BaselineSurveyScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'BaselineSurvey'>;
@@ -107,6 +107,47 @@ export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navi
     }
   };
 
+  const GENDER_OPTIONS = [
+    { label: 'Male', value: 'male' },
+    { label: 'Female', value: 'female' },
+    { label: 'Non-binary', value: 'non-binary' },
+    { label: 'Prefer not to say', value: 'prefer_not_to_say' },
+    { label: 'Other', value: 'other' },
+  ];
+
+  const EDUCATION_OPTIONS = [
+    { label: 'High school or less', value: 'high_school' },
+    { label: 'Some college', value: 'some_college' },
+    { label: "Bachelor's degree", value: 'bachelors' },
+    { label: "Master's degree", value: 'masters' },
+    { label: 'Doctoral degree', value: 'doctoral' },
+    { label: 'Other', value: 'other' },
+  ];
+
+  const renderOptionPills = (
+    options: { label: string; value: string }[],
+    selected: string,
+    onSelect: (value: string) => void
+  ) => (
+    <View style={styles.pillGroup}>
+      {options.map((opt) => {
+        const active = selected === opt.value;
+        return (
+          <TouchableOpacity
+            key={opt.value}
+            style={[styles.pill, active && styles.pillActive]}
+            onPress={() => onSelect(opt.value)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.pillText, active && styles.pillTextActive]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
   const renderDemographics = () => (
     <View>
       <Text style={styles.sectionTitle}>About You</Text>
@@ -120,40 +161,22 @@ export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navi
           value={demographics.age}
           onChangeText={(text) => setDemographics({ ...demographics, age: text })}
           placeholder="Enter your age"
+          keyboardType="numeric"
         />
 
         <Text style={styles.questionLabel}>What is your gender?</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={demographics.gender}
-            onValueChange={(value) => setDemographics({ ...demographics, gender: value })}
-            style={styles.picker}
-          >
-            <Picker.Item label="Select gender" value="" />
-            <Picker.Item label="Male" value="male" />
-            <Picker.Item label="Female" value="female" />
-            <Picker.Item label="Non-binary" value="non-binary" />
-            <Picker.Item label="Prefer not to say" value="prefer_not_to_say" />
-            <Picker.Item label="Other" value="other" />
-          </Picker>
-        </View>
+        {renderOptionPills(
+          GENDER_OPTIONS,
+          demographics.gender,
+          (value) => setDemographics({ ...demographics, gender: value })
+        )}
 
         <Text style={styles.questionLabel}>What is your highest level of education?</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={demographics.education}
-            onValueChange={(value) => setDemographics({ ...demographics, education: value })}
-            style={styles.picker}
-          >
-            <Picker.Item label="Select education level" value="" />
-            <Picker.Item label="High school or less" value="high_school" />
-            <Picker.Item label="Some college" value="some_college" />
-            <Picker.Item label="Bachelor's degree" value="bachelors" />
-            <Picker.Item label="Master's degree" value="masters" />
-            <Picker.Item label="Doctoral degree" value="doctoral" />
-            <Picker.Item label="Other" value="other" />
-          </Picker>
-        </View>
+        {renderOptionPills(
+          EDUCATION_OPTIONS,
+          demographics.education,
+          (value) => setDemographics({ ...demographics, education: value })
+        )}
       </Card>
     </View>
   );
@@ -310,17 +333,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.text,
     marginTop: 14,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  pickerContainer: {
+  pillGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
+  pill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 8,
-    marginBottom: 8,
     backgroundColor: COLORS.surface,
   },
-  picker: {
-    height: 50,
+  pillActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  pillText: {
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  pillTextActive: {
+    color: '#fff',
+    fontWeight: '600',
   },
   platformCard: {
     marginBottom: 12,
