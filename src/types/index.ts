@@ -8,6 +8,7 @@ export interface UserSettings {
   windowStart: string; // "08:00"
   windowEnd: string; // "23:00"
   trackedApps: string[];
+  name?: string;
 }
 
 export interface User {

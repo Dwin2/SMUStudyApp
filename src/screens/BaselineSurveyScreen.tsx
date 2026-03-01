@@ -22,12 +22,13 @@ type BaselineSurveyScreenProps = {
 const TOTAL_SECTIONS = 4;
 
 export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navigation }) => {
-  const { saveBaselineSurvey } = useStore();
+  const { saveBaselineSurvey, updateSettings } = useStore();
   const [currentSection, setCurrentSection] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Survey data
   const [demographics, setDemographics] = useState({
+    name: '',
     age: '',
     gender: '',
     education: '',
@@ -69,6 +70,9 @@ export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navi
         wellbeing,
         completedAt: new Date().toISOString(),
       });
+      if (demographics.name.trim()) {
+        await updateSettings({ name: demographics.name.trim() });
+      }
       navigation.navigate('Tutorial');
     } catch (error) {
       console.error('Error saving baseline survey:', error);
@@ -80,7 +84,7 @@ export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navi
   const canProceed = () => {
     switch (currentSection) {
       case 0:
-        return demographics.age && demographics.gender && demographics.education;
+        return demographics.name.trim() && demographics.age && demographics.gender && demographics.education;
       case 1:
         return true; // Platform frequency is optional
       case 2:
@@ -156,6 +160,14 @@ export const BaselineSurveyScreen: React.FC<BaselineSurveyScreenProps> = ({ navi
       </Text>
 
       <Card>
+        <Text style={styles.questionLabel}>What's your first name or nickname?</Text>
+        <TextInput
+          value={demographics.name}
+          onChangeText={(text) => setDemographics({ ...demographics, name: text })}
+          placeholder="e.g. Alex"
+          autoCapitalize="words"
+        />
+
         <Text style={styles.questionLabel}>What is your age?</Text>
         <TextInput
           value={demographics.age}

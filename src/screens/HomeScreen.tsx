@@ -43,9 +43,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
+  const filteredApps = SOCIAL_MEDIA_APPS.filter((app) =>
     user?.settings.trackedApps.includes(app.id)
   );
+  // Fall back to all apps so the grid is never empty
+  const trackedApps = filteredApps.length > 0 ? filteredApps : SOCIAL_MEDIA_APPS;
 
   const handleAppTap = (appId: string) => {
     const sessionId = uuidv4();
@@ -97,16 +99,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Hello!</Text>
+          <Text style={styles.greeting}>
+            Hello{user?.settings.name ? `, ${user.settings.name}` : ''}!
+          </Text>
           <Text style={styles.participantId}>ID: {user?.participantId}</Text>
         </View>
 
         {/* ── LAUNCH PAD ── primary interaction */}
         <Card style={styles.launchCard}>
-          <Text style={styles.launchTitle}>Open a Social Media App</Text>
+          <View style={styles.launchBanner}>
+            <MaterialCommunityIcons name="arrow-down-circle" size={18} color={COLORS.primary} />
+            <Text style={styles.launchBannerText}>
+              Open your apps from HERE — not your home screen
+            </Text>
+          </View>
+          <Text style={styles.launchTitle}>Tap an app to open it</Text>
           <Text style={styles.launchSubtitle}>
-            Tap below instead of opening apps directly from your home screen.
-            You may be asked a quick question before you go.
+            We may ask a quick question before redirecting you.
           </Text>
 
           <View style={styles.appGrid}>
@@ -225,6 +234,23 @@ const styles = StyleSheet.create({
 
   // Launch pad
   launchCard: { marginBottom: 14 },
+  launchBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  launchBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+    lineHeight: 18,
+  },
   launchTitle: {
     fontSize: 17,
     fontWeight: '700',
