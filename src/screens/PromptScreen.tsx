@@ -15,13 +15,18 @@ type PromptScreenProps = {
 
 export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route }) => {
   const { platform, sessionId, demo } = route.params;
-  const { user, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt } = useStore();
+  const { user, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt, startAppSession } = useStore();
 
   const isTreatmentGroup = user?.group === 'treatment';
   // Demo mode always shows; live mode checks sampling rules once on mount
   const shouldShow = useRef(demo ? true : canShowPrompt()).current;
 
   useEffect(() => {
+    // Register the session if opened via deep link (startAppSession wasn't called)
+    if (!demo) {
+      startAppSession(platform);
+    }
+
     if (!shouldShow) {
       // Sampling rules say skip — open the target app directly without a prompt
       openTargetApp();

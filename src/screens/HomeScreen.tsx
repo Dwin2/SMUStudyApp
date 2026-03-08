@@ -7,63 +7,26 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Linking,
 } from 'react-native';
 import { Card, ProgressBar } from '../components/common';
-import { COLORS, APP_CONFIG, SOCIAL_MEDIA_APPS } from '../constants';
+import { COLORS, APP_CONFIG } from '../constants';
 import { useStore } from '../store/useStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Crypto from 'expo-crypto';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
-// Icon colors per app
-const APP_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  facebook: '#1877F2',
-  youtube: '#FF0000',
-  tiktok: '#010101',
-  snapchat: '#FFFC00',
-  twitter: '#1DA1F2',
-  whatsapp: '#25D366',
-  discord: '#5865F2',
-};
-
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { user, sampling, initialize, canShowPrompt, startAppSession } = useStore();
+  const { user, sampling, initialize } = useStore();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await initialize();
     setRefreshing(false);
-  };
-
-  const filteredApps = SOCIAL_MEDIA_APPS.filter((app) =>
-    user?.settings.trackedApps.includes(app.id)
-  );
-  // Fall back to all apps so the grid is never empty
-  const trackedApps = filteredApps.length > 0 ? filteredApps : SOCIAL_MEDIA_APPS;
-
-  const handleAppTap = (appId: string) => {
-    const sessionId = startAppSession(appId);
-
-    if (canShowPrompt()) {
-      // Show prompt first — PromptScreen will open the real app after
-      navigation.navigate('Prompt', { platform: appId, sessionId });
-    } else {
-      // Sampling rules say skip — open the app directly
-      const app = SOCIAL_MEDIA_APPS.find((a) => a.id === appId);
-      if (app) {
-        Linking.openURL(app.urlScheme).catch(() => {
-          // App not installed or URL scheme not supported — do nothing
-        });
-      }
-    }
   };
 
   const getStudyProgress = () => {
@@ -90,6 +53,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const todayStr = new Date().toISOString().slice(0, 10);
   const effectivePromptsToday = sampling.lastResetDate !== todayStr ? 0 : sampling.promptsToday;
 
+  const displayName = user?.settings.name || 'Participant';
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -98,47 +63,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>
-            Hello{user?.settings.name ? `, ${user.settings.name}` : ''}!
-          </Text>
+          <Text style={styles.greeting}>Hello, {displayName}!</Text>
           <Text style={styles.participantId}>ID: {user?.participantId}</Text>
         </View>
 
-        {/* ── LAUNCH PAD ── primary interaction */}
-        <Card style={styles.launchCard}>
-          <View style={styles.launchBanner}>
-            <MaterialCommunityIcons name="arrow-down-circle" size={18} color={COLORS.primary} />
-            <Text style={styles.launchBannerText}>
-              Open your apps from HERE — not your home screen
-            </Text>
+        {/* How it works reminder */}
+        <Card style={styles.infoCard}>
+          <View style={styles.row}>
+            <MaterialCommunityIcons name="information-outline" size={20} color={COLORS.primary} />
+            <Text style={styles.cardTitle}>How It Works</Text>
           </View>
-          <Text style={styles.launchTitle}>Tap an app to open it</Text>
-          <Text style={styles.launchSubtitle}>
-            We may ask a quick question before redirecting you.
+          <Text style={styles.infoText}>
+            Just use your social media apps normally. When you open Instagram,
+            TikTok, or other tracked apps, a brief prompt will appear
+            automatically. No need to open them from here.
           </Text>
-
-          <View style={styles.appGrid}>
-            {trackedApps.map((app) => {
-              const color = APP_COLORS[app.id] ?? COLORS.primary;
-              return (
-                <TouchableOpacity
-                  key={app.id}
-                  style={styles.appTile}
-                  onPress={() => handleAppTap(app.id)}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.appIcon, { backgroundColor: color }]}>
-                    <MaterialCommunityIcons
-                      name={app.icon as any}
-                      size={28}
-                      color={app.id === 'snapchat' ? '#000' : '#fff'}
-                    />
-                  </View>
-                  <Text style={styles.appLabel}>{app.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
         </Card>
 
         {/* Study Progress */}
@@ -231,63 +170,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
 
-  // Launch pad
-  launchCard: { marginBottom: 14 },
-  launchBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.primary + '15',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  launchBannerText: {
-    flex: 1,
+  // Info card
+  infoCard: { marginBottom: 14 },
+  infoText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.primary,
-    lineHeight: 18,
-  },
-  launchTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  launchSubtitle: {
-    fontSize: 12,
     color: COLORS.textSecondary,
-    lineHeight: 17,
-    marginBottom: 16,
-  },
-  appGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  appTile: {
-    alignItems: 'center',
-    width: 68,
-  },
-  appIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  appLabel: {
-    fontSize: 11,
-    color: COLORS.text,
-    textAlign: 'center',
+    lineHeight: 20,
   },
 
   // Cards

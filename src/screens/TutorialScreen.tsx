@@ -4,12 +4,16 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  TouchableOpacity,
   Dimensions,
+  Platform,
+  Linking,
+  TouchableOpacity,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Button } from '../components/common';
-import { COLORS } from '../constants';
+import { COLORS, SOCIAL_MEDIA_APPS } from '../constants';
 import { useStore } from '../store/useStore';
+import { getDeepLinkURL } from '../services/appUsageService';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,12 +22,12 @@ type TutorialScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Tutorial'>;
 };
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3;
 
 export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [demoTried, setDemoTried] = useState(false);
-  const { updatePhase, startAppSession } = useStore();
+  const { updatePhase, startAppSession, user } = useStore();
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS - 1) {
@@ -65,13 +69,11 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
 
         {/* Step content */}
         <View style={styles.stepContent}>
-          {currentStep === 0 && <StepOpenFromHere />}
-          {currentStep === 1 && (
+          {currentStep === 0 && (
             <StepDemo demoTried={demoTried} onTryDemo={handleDemoTap} />
           )}
-          {currentStep === 2 && <StepPrompts />}
-          {currentStep === 3 && <StepSurveys />}
-          {currentStep === 4 && <StepDuration />}
+          {currentStep === 1 && <StepSetup user={user} />}
+          {currentStep === 2 && <StepReady />}
         </View>
 
         {/* Footer buttons */}
@@ -92,7 +94,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
             />
           </View>
           {!isLastStep && (
-            <Button title="Skip Tutorial" onPress={handleFinish} mode="text" />
+            <Button title="Skip & Start Study" onPress={handleFinish} mode="text" />
           )}
         </View>
       </View>
@@ -101,24 +103,6 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
 };
 
 // ── Step components ──────────────────────────────────────────────────────────
-
-function StepOpenFromHere() {
-  return (
-    <>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="hand-pointing-down" size={64} color={COLORS.primary} />
-      </View>
-      <Text style={styles.stepTitle}>Open Apps From Here</Text>
-      <Text style={styles.stepDescription}>
-        During the 7-day study, always open your social media apps{' '}
-        <Text style={{ fontWeight: '700', color: COLORS.text }}>through this app</Text> — not
-        directly from your home screen.{'\n\n'}
-        The app's home screen has icons for Instagram, TikTok, and more. Tap them here to launch
-        the apps.
-      </Text>
-    </>
-  );
-}
 
 function StepDemo({
   demoTried,
@@ -130,12 +114,13 @@ function StepDemo({
   return (
     <>
       <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="play-circle-outline" size={64} color={COLORS.primary} />
+        <MaterialCommunityIcons name="instagram" size={64} color="#E1306C" />
       </View>
-      <Text style={styles.stepTitle}>Try It Now</Text>
+      <Text style={styles.stepTitle}>How Prompts Work</Text>
       <Text style={styles.stepDescription}>
-        Sometimes before opening an app, you'll see a short question. Tap the button below to
-        experience it.
+        When you open Instagram (or any tracked app), a short question will
+        automatically pop up before the app opens.{'\n\n'}
+        Tap below to see exactly what it looks like.
       </Text>
 
       <TouchableOpacity
@@ -149,54 +134,106 @@ function StepDemo({
           color={demoTried ? COLORS.success ?? '#22c55e' : '#fff'}
         />
         <Text style={[styles.demoButtonText, demoTried && styles.demoButtonTextDone]}>
-          {demoTried ? 'Demo complete ✓' : 'Open Instagram (demo)'}
+          {demoTried ? 'Demo complete' : 'Try a demo prompt'}
         </Text>
       </TouchableOpacity>
 
       {demoTried && (
         <Text style={styles.demoNote}>
-          That's exactly what it looks like. Tap Next to continue.
+          That's it! Prompts appear automatically — no extra steps needed.
         </Text>
       )}
     </>
   );
 }
 
-function StepPrompts() {
+function StepSetup({ user }: { user: any }) {
+  const [copied, setCopied] = useState(false);
+
+  const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
+    user?.settings.trackedApps.includes(app.id)
+  );
+  const displayApps = trackedApps.length > 0 ? trackedApps : SOCIAL_MEDIA_APPS.slice(0, 4);
+
+  const handleCopyURL = async (appId: string) => {
+    const url = getDeepLinkURL(appId);
+    await Clipboard.setStringAsync(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleOpenShortcuts = () => {
+    Linking.openURL('shortcuts://');
+  };
+
+  if (Platform.OS !== 'ios') {
+    return (
+      <>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="check-circle" size={64} color={COLORS.success ?? '#22c55e'} />
+        </View>
+        <Text style={styles.stepTitle}>Automatic Detection</Text>
+        <Text style={styles.stepDescription}>
+          On Android, the app automatically detects when you open social media.
+          {'\n\n'}
+          Just use Instagram and your other apps normally — prompts will appear
+          automatically.
+        </Text>
+      </>
+    );
+  }
+
   return (
     <>
       <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="message-question-outline" size={64} color={COLORS.primary} />
+        <MaterialCommunityIcons name="apple" size={64} color={COLORS.primary} />
       </View>
-      <Text style={styles.stepTitle}>Quick Prompts</Text>
+      <Text style={styles.stepTitle}>One-Time Setup</Text>
       <Text style={styles.stepDescription}>
-        Not every app open will trigger a question — we'll ask up to{' '}
-        <Text style={{ fontWeight: '700', color: COLORS.text }}>15 times per day</Text>, with at
-        least 1 hour between prompts.{'\n\n'}
-        Just answer honestly. There are no right or wrong answers.
+        To get prompts automatically, set up a quick iOS Shortcut for each app.
+        This lets prompts appear when you open Instagram normally — no need to
+        launch it from here.
       </Text>
+
+      <View style={styles.setupInstructions}>
+        <Text style={styles.setupStep}>1. Open the <Text style={{ fontWeight: '700' }}>Shortcuts</Text> app</Text>
+        <Text style={styles.setupStep}>2. Go to <Text style={{ fontWeight: '700' }}>Automation</Text> → tap <Text style={{ fontWeight: '700' }}>+</Text></Text>
+        <Text style={styles.setupStep}>3. Choose <Text style={{ fontWeight: '700' }}>App</Text> → select the app (e.g. Instagram)</Text>
+        <Text style={styles.setupStep}>4. Add action: <Text style={{ fontWeight: '700' }}>Open URL</Text></Text>
+        <Text style={styles.setupStep}>5. Paste the URL below → turn off "Ask Before Running"</Text>
+      </View>
+
+      <View style={styles.urlList}>
+        {displayApps.map((app) => (
+          <TouchableOpacity
+            key={app.id}
+            style={styles.urlRow}
+            onPress={() => handleCopyURL(app.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.urlAppName}>{app.name}:</Text>
+            <Text style={styles.urlText} numberOfLines={1}>{getDeepLinkURL(app.id)}</Text>
+            <MaterialCommunityIcons
+              name={copied ? 'check' : 'content-copy'}
+              size={16}
+              color={copied ? (COLORS.success ?? '#22c55e') : COLORS.primary}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Button
+        title="Open Shortcuts App"
+        onPress={handleOpenShortcuts}
+        icon="open-in-new"
+        mode="outlined"
+        style={styles.shortcutsButton}
+      />
     </>
   );
 }
 
-function StepSurveys() {
-  return (
-    <>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="bell-outline" size={64} color={COLORS.primary} />
-      </View>
-      <Text style={styles.stepTitle}>Daily Check-ins</Text>
-      <Text style={styles.stepDescription}>
-        At{' '}
-        <Text style={{ fontWeight: '700', color: COLORS.text }}>5 pm and 9 pm</Text> each day
-        you'll get a notification for a brief survey about your social media use and well-being.{'\n\n'}
-        These take about 2 minutes each.
-      </Text>
-    </>
-  );
-}
-
-function StepDuration() {
+function StepReady() {
   return (
     <>
       <View style={styles.iconContainer}>
@@ -205,10 +242,15 @@ function StepDuration() {
       <Text style={styles.stepTitle}>You're All Set!</Text>
       <Text style={styles.stepDescription}>
         The study runs for{' '}
-        <Text style={{ fontWeight: '700', color: COLORS.text }}>7 days</Text>. After that, you'll
-        complete a short final survey. We'll also follow up on Day 30.{'\n\n'}
-        Tap <Text style={{ fontWeight: '700', color: COLORS.text }}>Start Study</Text> when you're
-        ready to begin.
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>7 days</Text>. Here's what
+        to expect:{'\n\n'}
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>Prompts</Text> — Up to 15
+        per day when you open social media, with at least 1 hour between each.{'\n\n'}
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>Check-ins</Text> — Brief
+        surveys at 5 PM and 9 PM daily.{'\n\n'}
+        Tap{' '}
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>Start Study</Text> when
+        you're ready.
       </Text>
     </>
   );
@@ -274,7 +316,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     paddingVertical: 14,
     paddingHorizontal: 28,
-    backgroundColor: '#E1306C', // Instagram brand colour
+    backgroundColor: '#E1306C',
     borderRadius: 14,
   },
   demoButtonDone: {
@@ -295,6 +337,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  // Setup instructions
+  setupInstructions: {
+    alignSelf: 'stretch',
+    marginTop: 20,
+    marginBottom: 16,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+  },
+  setupStep: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 22,
+  },
+  urlList: {
+    alignSelf: 'stretch',
+    marginBottom: 12,
+  },
+  urlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  urlAppName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
+    width: 72,
+  },
+  urlText: {
+    flex: 1,
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: COLORS.primary,
+  },
+  shortcutsButton: {
+    alignSelf: 'stretch',
+    marginTop: 4,
   },
   // Footer
   footer: { paddingTop: 24 },
