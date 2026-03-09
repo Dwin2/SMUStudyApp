@@ -398,15 +398,15 @@ function StepAppSetup({
     },
     {
       title: 'Create a new Automation',
-      detail: `Tap the "Automation" tab at the bottom → tap the "+" button in the top-right → scroll down and choose "App" → find and select "${app.name}" → make sure "Is Opened" is checked → tap "Done" or "Next".`,
+      detail: `Tap the "Automation" tab at the bottom → tap "New Automation" (or the "+" button) → select "App" → search for and select "${app.name}" → make sure "Is Opened" is checked → tap "Done".`,
     },
     {
       title: 'Add the "Open URLs" action',
-      detail: `Choose "New Blank Automation" → tap "Add Action" → in the search bar type "Open URLs" → select the "Open URLs" action → tap the blue "URL" placeholder and paste the link you copied in step 1.`,
+      detail: `On iOS 17+: you'll see a blank action sheet — tap the search bar at the top, type "Open URLs", and select it. Tap the blue "URL" placeholder and paste the link you copied in step 1.`,
     },
     {
-      title: 'Finish and disable "Ask Before Running"',
-      detail: `Tap "Done" in the top right. If prompted, turn OFF "Ask Before Running" so the prompt shows automatically. Tap "Done" again to save.`,
+      title: 'Set to "Run Immediately"',
+      detail: `On iOS 17+: at the bottom of the automation, tap "Run Immediately" (not "Run After Confirmation"). On older iOS: turn OFF "Ask Before Running". Then tap "Done" to save.`,
     },
   ];
 
