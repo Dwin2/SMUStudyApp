@@ -28,12 +28,10 @@ type TutorialScreenProps = {
 export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) => {
   const { updatePhase, startAppSession, user } = useStore();
 
-  const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
-    user?.settings?.trackedApps?.includes(app.id)
-  );
-  // Fallback: if trackedApps empty (user not loaded / no selection), use first 6
-  const appsToSetUp = trackedApps.length > 0
-    ? trackedApps
+  const userTrackedIds = user?.settings?.trackedApps;
+  // Only use user's actual selection; fallback to defaults only if user hasn't loaded
+  const appsToSetUp = userTrackedIds
+    ? SOCIAL_MEDIA_APPS.filter((app) => userTrackedIds.includes(app.id))
     : SOCIAL_MEDIA_APPS.slice(0, 6);
 
   // Total steps: demo + one per tracked app + ready
