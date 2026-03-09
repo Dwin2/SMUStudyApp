@@ -1,5 +1,6 @@
-import React, { useEffect, useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Linking } from 'react-native';
+
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,7 +15,6 @@ import {
   scheduleScheduledSurveys,
 } from './src/services/notificationService';
 import { handleDeepLink } from './src/services/appUsageService';
-import { Linking } from 'react-native';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -31,18 +31,6 @@ const theme = {
     error: COLORS.error,
   },
 };
-
-// Loading screen component
-const LoadingScreen: React.FC = () => (
-  <View style={styles.loadingContainer}>
-    <View style={styles.logoContainer}>
-      <Text style={styles.logo}>SMU</Text>
-    </View>
-    <Text style={styles.loadingTitle}>Social Media Study</Text>
-    <ActivityIndicator size="large" color={COLORS.primary} style={styles.spinner} />
-    <Text style={styles.loadingText}>Loading...</Text>
-  </View>
-);
 
 // Navigate from a notification tap to the correct screen.
 // Called both when the app is in the foreground and when it's cold-started
@@ -151,16 +139,17 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
-  const onLayoutRootView = useCallback(async () => {
+  // Hide the native splash screen once initialization is complete
+  useEffect(() => {
     if (appIsReady) {
-      await SplashScreen.hideAsync();
+      SplashScreen.hideAsync();
     }
   }, [appIsReady]);
 
   // Always render AppNavigator so NavigationContainer is mounted and can
   // receive deep links. The navigator handles its own loading state.
   return (
-    <SafeAreaProvider onLayout={onLayoutRootView}>
+    <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <StatusBar style="auto" />
         <AppNavigator />
@@ -168,40 +157,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-    padding: 24,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  logo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  loadingTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 20,
-  },
-  spinner: {
-    marginBottom: 16,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-});
