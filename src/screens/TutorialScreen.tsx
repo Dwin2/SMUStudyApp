@@ -29,8 +29,8 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
   const { updatePhase, startAppSession, user } = useStore();
 
   const userTrackedIds = user?.settings?.trackedApps;
-  // Only use user's actual selection; fallback to defaults only if user hasn't loaded
-  const appsToSetUp = userTrackedIds
+  // Use user's selection if available and non-empty; otherwise fall back to defaults
+  const appsToSetUp = (userTrackedIds && userTrackedIds.length > 0)
     ? SOCIAL_MEDIA_APPS.filter((app) => userTrackedIds.includes(app.id))
     : SOCIAL_MEDIA_APPS.slice(0, 6);
 

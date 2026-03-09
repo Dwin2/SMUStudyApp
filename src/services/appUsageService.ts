@@ -1,4 +1,5 @@
 import { Platform, Linking } from 'react-native';
+import * as ExpoLinking from 'expo-linking';
 import { SOCIAL_MEDIA_APPS } from '../constants';
 
 /**
@@ -24,34 +25,37 @@ export const IOS_URL_SCHEMES = SOCIAL_MEDIA_APPS.reduce((acc, app) => {
 
 /**
  * Get the deep link URL for a given app platform ID.
- * This is the exact URL the iOS Shortcut must open.
- * Format: smustudy://open?platform=instagram
+ * Uses expo-linking's createURL so it works in both Expo Go
+ * (exp://...) and standalone builds (smustudy://...).
  */
 export const getDeepLinkURL = (appId: string): string => {
-  return `smustudy://open?platform=${appId}`;
+  return ExpoLinking.createURL('open', { queryParams: { platform: appId } });
 };
 
 /**
  * Handle incoming deep link for iOS Shortcuts integration.
- * Expects: smustudy://open?platform=instagram
+ * Works with both standalone (smustudy://open?platform=instagram)
+ * and Expo Go (exp://127.0.0.1:8081/--/open?platform=instagram) URLs.
  */
 export const handleDeepLink = (url: string): { platform: string; sessionId: string } | null => {
   try {
-    const parsedUrl = new URL(url);
+    // Use expo-linking to parse, which handles both exp:// and smustudy:// schemes
+    const parsed = ExpoLinking.parse(url);
 
-    if (parsedUrl.protocol === 'smustudy:') {
-      const platform = parsedUrl.searchParams.get('platform');
-      const sessionId = parsedUrl.searchParams.get('sessionId') || `session-${Date.now()}`;
+    // Check if this is an "open" path with a platform param
+    if (parsed.path === 'open' && parsed.queryParams?.platform) {
+      const rawPlatform = String(parsed.queryParams.platform);
+      const sessionId = parsed.queryParams.sessionId
+        ? String(parsed.queryParams.sessionId)
+        : `session-${Date.now()}`;
 
-      if (platform) {
-        const normalized = platform.toLowerCase().replace(/[^a-z]/g, '');
-        const matchedApp = SOCIAL_MEDIA_APPS.find(
-          (a) => a.id === normalized || a.name.toLowerCase().replace(/[^a-z]/g, '') === normalized
-        );
+      const normalized = rawPlatform.toLowerCase().replace(/[^a-z]/g, '');
+      const matchedApp = SOCIAL_MEDIA_APPS.find(
+        (a) => a.id === normalized || a.name.toLowerCase().replace(/[^a-z]/g, '') === normalized
+      );
 
-        if (matchedApp) {
-          return { platform: matchedApp.id, sessionId };
-        }
+      if (matchedApp) {
+        return { platform: matchedApp.id, sessionId };
       }
     }
   } catch (error) {
