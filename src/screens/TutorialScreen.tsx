@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Platform,
   Linking,
   TouchableOpacity,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Button } from '../components/common';
@@ -22,12 +24,20 @@ type TutorialScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Tutorial'>;
 };
 
-const TOTAL_STEPS = 3;
-
+// Steps: 0 = Demo, 1..N = one per tracked app (Shortcuts setup), N+1 = Ready
 export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) => {
+  const { updatePhase, startAppSession, user } = useStore();
+
+  const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
+    user?.settings.trackedApps.includes(app.id)
+  );
+
+  // Total steps: demo + one per tracked app + ready
+  const TOTAL_STEPS = 1 + trackedApps.length + 1;
+
   const [currentStep, setCurrentStep] = useState(0);
   const [demoTried, setDemoTried] = useState(false);
-  const { updatePhase, startAppSession, user } = useStore();
+  const [completedApps, setCompletedApps] = useState<Set<string>>(new Set());
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS - 1) {
@@ -52,29 +62,48 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
     navigation.navigate('Prompt', { platform: 'instagram', sessionId, demo: true });
   };
 
+  const markAppDone = useCallback((appId: string) => {
+    setCompletedApps((prev) => new Set(prev).add(appId));
+  }, []);
+
   const isLastStep = currentStep === TOTAL_STEPS - 1;
+  const isAppStep = currentStep >= 1 && currentStep < TOTAL_STEPS - 1;
+  const currentApp = isAppStep ? trackedApps[currentStep - 1] : null;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Progress dots */}
-        <View style={styles.progressContainer}>
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <View
-              key={i}
-              style={[styles.progressDot, i <= currentStep && styles.progressDotActive]}
-            />
-          ))}
+        {/* Progress bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBarFill, { width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%` }]} />
         </View>
+        <Text style={styles.progressLabel}>
+          Step {currentStep + 1} of {TOTAL_STEPS}
+        </Text>
 
         {/* Step content */}
-        <View style={styles.stepContent}>
+        <ScrollView
+          style={styles.stepScroll}
+          contentContainerStyle={styles.stepContent}
+          showsVerticalScrollIndicator={false}
+        >
           {currentStep === 0 && (
             <StepDemo demoTried={demoTried} onTryDemo={handleDemoTap} />
           )}
-          {currentStep === 1 && <StepSetup user={user} />}
-          {currentStep === 2 && <StepReady />}
-        </View>
+          {isAppStep && currentApp && (
+            <StepAppSetup
+              app={currentApp}
+              isDone={completedApps.has(currentApp.id)}
+              onMarkDone={() => markAppDone(currentApp.id)}
+            />
+          )}
+          {isLastStep && (
+            <StepReady
+              completedCount={completedApps.size}
+              totalCount={trackedApps.length}
+            />
+          )}
+        </ScrollView>
 
         {/* Footer buttons */}
         <View style={styles.footer}>
@@ -102,7 +131,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
   );
 };
 
-// ── Step components ──────────────────────────────────────────────────────────
+// ── Step 0: Demo ─────────────────────────────────────────────────────────────
 
 function StepDemo({
   demoTried,
@@ -114,13 +143,14 @@ function StepDemo({
   return (
     <>
       <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="instagram" size={64} color="#E1306C" />
+        <MaterialCommunityIcons name="cellphone-check" size={56} color={COLORS.primary} />
       </View>
       <Text style={styles.stepTitle}>How Prompts Work</Text>
       <Text style={styles.stepDescription}>
-        When you open Instagram (or any tracked app), a short question will
-        automatically pop up before the app opens.{'\n\n'}
-        Tap below to see exactly what it looks like.
+        During the study, a short question will appear{' '}
+        <Text style={{ fontWeight: '700' }}>before</Text> your social media app opens
+        — right on your home screen, just like normal.{'\n\n'}
+        Tap below to preview what the prompt looks like.
       </Text>
 
       <TouchableOpacity
@@ -129,7 +159,7 @@ function StepDemo({
         activeOpacity={0.8}
       >
         <MaterialCommunityIcons
-          name="instagram"
+          name="play-circle-outline"
           size={28}
           color={demoTried ? COLORS.success ?? '#22c55e' : '#fff'}
         />
@@ -140,112 +170,251 @@ function StepDemo({
 
       {demoTried && (
         <Text style={styles.demoNote}>
-          That's it! Prompts appear automatically — no extra steps needed.
+          Great! Next, we'll set up each of your apps so prompts appear automatically
+          when you open them from your home screen.
         </Text>
       )}
     </>
   );
 }
 
-function StepSetup({ user }: { user: any }) {
+// ── Per-app Shortcuts setup step ─────────────────────────────────────────────
+
+const ICON_MAP: Record<string, string> = {
+  facebook: 'facebook',
+  instagram: 'instagram',
+  youtube: 'youtube',
+  tiktok: 'music-note',
+  snapchat: 'snapchat',
+  twitter: 'twitter',
+  whatsapp: 'whatsapp',
+  discord: 'discord',
+};
+
+const APP_COLORS: Record<string, string> = {
+  facebook: '#1877F2',
+  instagram: '#E1306C',
+  youtube: '#FF0000',
+  tiktok: '#000000',
+  snapchat: '#FFFC00',
+  twitter: '#1DA1F2',
+  whatsapp: '#25D366',
+  discord: '#5865F2',
+};
+
+function StepAppSetup({
+  app,
+  isDone,
+  onMarkDone,
+}: {
+  app: (typeof SOCIAL_MEDIA_APPS)[number];
+  isDone: boolean;
+  onMarkDone: () => void;
+}) {
   const [copied, setCopied] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
+  const deepLinkURL = getDeepLinkURL(app.id);
+  const appColor = APP_COLORS[app.id] || COLORS.primary;
 
-  const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
-    user?.settings.trackedApps.includes(app.id)
-  );
-  const displayApps = trackedApps.length > 0 ? trackedApps : SOCIAL_MEDIA_APPS.slice(0, 4);
-
-  const handleCopyURL = async (appId: string) => {
-    const url = getDeepLinkURL(appId);
-    await Clipboard.setStringAsync(url);
+  const handleCopyURL = async () => {
+    await Clipboard.setStringAsync(deepLinkURL);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const handleOpenShortcuts = () => {
-    Linking.openURL('shortcuts://');
+    Linking.openURL('shortcuts://create-automation');
+  };
+
+  const handleMarkDone = () => {
+    onMarkDone();
+    Alert.alert(
+      `${app.name} is set up!`,
+      `Prompts will now appear automatically when you open ${app.name} from your home screen.`
+    );
   };
 
   if (Platform.OS !== 'ios') {
     return (
       <>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name="check-circle" size={64} color={COLORS.success ?? '#22c55e'} />
+        <View style={[styles.iconContainer, { backgroundColor: appColor + '15' }]}>
+          <MaterialCommunityIcons
+            name={ICON_MAP[app.id] as any ?? 'application'}
+            size={56}
+            color={appColor}
+          />
         </View>
-        <Text style={styles.stepTitle}>Automatic Detection</Text>
+        <Text style={styles.stepTitle}>{app.name}</Text>
         <Text style={styles.stepDescription}>
-          On Android, the app automatically detects when you open social media.
-          {'\n\n'}
-          Just use Instagram and your other apps normally — prompts will appear
-          automatically.
+          On Android, {app.name} is detected automatically. No setup needed!
         </Text>
+        {!isDone && (
+          <TouchableOpacity style={styles.doneButton} onPress={onMarkDone} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="check" size={20} color="#fff" />
+            <Text style={styles.doneButtonText}>Got it</Text>
+          </TouchableOpacity>
+        )}
+        {isDone && <DoneBadge appName={app.name} />}
       </>
     );
   }
 
-  return (
-    <>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="apple" size={64} color={COLORS.primary} />
-      </View>
-      <Text style={styles.stepTitle}>One-Time Setup</Text>
-      <Text style={styles.stepDescription}>
-        To get prompts automatically, set up a quick iOS Shortcut for each app.
-        This lets prompts appear when you open Instagram normally — no need to
-        launch it from here.
-      </Text>
-
-      <View style={styles.setupInstructions}>
-        <Text style={styles.setupStep}>1. Open the <Text style={{ fontWeight: '700' }}>Shortcuts</Text> app</Text>
-        <Text style={styles.setupStep}>2. Go to <Text style={{ fontWeight: '700' }}>Automation</Text> → tap <Text style={{ fontWeight: '700' }}>+</Text></Text>
-        <Text style={styles.setupStep}>3. Choose <Text style={{ fontWeight: '700' }}>App</Text> → select the app (e.g. Instagram)</Text>
-        <Text style={styles.setupStep}>4. Add action: <Text style={{ fontWeight: '700' }}>Open URL</Text></Text>
-        <Text style={styles.setupStep}>5. Paste the URL below → turn off "Ask Before Running"</Text>
-      </View>
-
-      <View style={styles.urlList}>
-        {displayApps.map((app) => (
-          <TouchableOpacity
-            key={app.id}
-            style={styles.urlRow}
-            onPress={() => handleCopyURL(app.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.urlAppName}>{app.name}:</Text>
-            <Text style={styles.urlText} numberOfLines={1}>{getDeepLinkURL(app.id)}</Text>
+  // iOS guided setup
+  const steps = [
+    {
+      title: 'Copy the link below',
+      detail: 'This special link tells our app which platform you opened.',
+      action: (
+        <TouchableOpacity style={styles.urlCopyRow} onPress={handleCopyURL} activeOpacity={0.7}>
+          <Text style={styles.urlText} numberOfLines={1}>{deepLinkURL}</Text>
+          <View style={[styles.copyBadge, copied && styles.copyBadgeDone]}>
             <MaterialCommunityIcons
               name={copied ? 'check' : 'content-copy'}
               size={16}
-              color={copied ? (COLORS.success ?? '#22c55e') : COLORS.primary}
+              color={copied ? '#fff' : COLORS.primary}
             />
+            <Text style={[styles.copyBadgeText, copied && styles.copyBadgeTextDone]}>
+              {copied ? 'Copied!' : 'Copy'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ),
+    },
+    {
+      title: 'Open the Shortcuts app',
+      detail: 'Tap the button below to jump straight to Shortcuts.',
+      action: (
+        <Button
+          title="Open Shortcuts"
+          onPress={handleOpenShortcuts}
+          icon="open-in-new"
+          mode="outlined"
+          style={{ marginTop: 8 }}
+        />
+      ),
+    },
+    {
+      title: 'Create a new Automation',
+      detail: `Tap the Automation tab → tap + → choose "App" → select "${app.name}" → make sure "Is Opened" is checked → tap Next.`,
+    },
+    {
+      title: 'Add the "Open URL" action',
+      detail: `Tap "New Blank Automation" → tap "Add Action" → search for "Open URL" → tap the blue "URL" text and paste the link you copied in step 1.`,
+    },
+    {
+      title: 'Turn off "Ask Before Running"',
+      detail: `Tap "Done" in the top right. When asked, turn OFF "Ask Before Running" so the prompt appears instantly. Then tap "Done" again.`,
+    },
+  ];
+
+  return (
+    <>
+      {/* App header */}
+      <View style={[styles.iconContainer, { backgroundColor: appColor + '15' }]}>
+        <MaterialCommunityIcons
+          name={ICON_MAP[app.id] as any ?? 'application'}
+          size={56}
+          color={appColor}
+        />
+      </View>
+      <Text style={styles.stepTitle}>Set up {app.name}</Text>
+      <Text style={styles.stepDescription}>
+        Follow these steps to create a Shortcut so prompts appear when you open{' '}
+        {app.name} from your home screen.
+      </Text>
+
+      {/* Numbered steps */}
+      <View style={styles.stepsContainer}>
+        {steps.map((step, i) => (
+          <TouchableOpacity
+            key={i}
+            style={styles.stepRow}
+            onPress={() => setExpandedStep(expandedStep === i ? null : i)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.stepNumberCircle}>
+              <Text style={styles.stepNumber}>{i + 1}</Text>
+            </View>
+            <View style={styles.stepInfo}>
+              <Text style={styles.stepRowTitle}>{step.title}</Text>
+              {(expandedStep === i || i <= 1) && (
+                <>
+                  <Text style={styles.stepDetail}>{step.detail}</Text>
+                  {step.action && <View style={styles.stepAction}>{step.action}</View>}
+                </>
+              )}
+              {expandedStep !== i && i > 1 && (
+                <Text style={styles.tapToExpand}>Tap to expand</Text>
+              )}
+            </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Button
-        title="Open Shortcuts App"
-        onPress={handleOpenShortcuts}
-        icon="open-in-new"
-        mode="outlined"
-        style={styles.shortcutsButton}
-      />
+      {/* Mark done */}
+      {!isDone ? (
+        <TouchableOpacity style={styles.doneButton} onPress={handleMarkDone} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="check-circle-outline" size={20} color="#fff" />
+          <Text style={styles.doneButtonText}>I've finished setting up {app.name}</Text>
+        </TouchableOpacity>
+      ) : (
+        <DoneBadge appName={app.name} />
+      )}
     </>
   );
 }
 
-function StepReady() {
+function DoneBadge({ appName }: { appName: string }) {
+  return (
+    <View style={styles.doneBadge}>
+      <MaterialCommunityIcons name="check-circle" size={22} color={COLORS.success ?? '#22c55e'} />
+      <Text style={styles.doneBadgeText}>{appName} is set up</Text>
+    </View>
+  );
+}
+
+// ── Final step: Ready ────────────────────────────────────────────────────────
+
+function StepReady({
+  completedCount,
+  totalCount,
+}: {
+  completedCount: number;
+  totalCount: number;
+}) {
+  const allDone = completedCount === totalCount;
   return (
     <>
       <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="calendar-check" size={64} color={COLORS.primary} />
+        <MaterialCommunityIcons
+          name={allDone ? 'calendar-check' : 'alert-circle-outline'}
+          size={56}
+          color={allDone ? COLORS.primary : COLORS.warning}
+        />
       </View>
-      <Text style={styles.stepTitle}>You're All Set!</Text>
+      <Text style={styles.stepTitle}>
+        {allDone ? "You're All Set!" : 'Almost There'}
+      </Text>
+
+      {!allDone && (
+        <View style={styles.warningBox}>
+          <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.warning} />
+          <Text style={styles.warningText}>
+            You set up {completedCount} of {totalCount} apps. You can go back to finish the rest,
+            or continue and set them up later in Settings.
+          </Text>
+        </View>
+      )}
+
       <Text style={styles.stepDescription}>
         The study runs for{' '}
         <Text style={{ fontWeight: '700', color: COLORS.text }}>7 days</Text>. Here's what
         to expect:{'\n\n'}
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>Use apps normally</Text> — Open
+        Instagram, TikTok, etc. from your home screen as you always do. A brief
+        prompt will appear automatically before the app opens.{'\n\n'}
         <Text style={{ fontWeight: '700', color: COLORS.text }}>Prompts</Text> — Up to 15
-        per day when you open social media, with at least 1 hour between each.{'\n\n'}
+        per day, with at least 1 hour between each.{'\n\n'}
         <Text style={{ fontWeight: '700', color: COLORS.text }}>Check-ins</Text> — Brief
         surveys at 5 PM and 9 PM daily.{'\n\n'}
         Tap{' '}
@@ -263,51 +432,59 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { flex: 1, padding: 24 },
-  progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 48,
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+
+  // Progress bar
+  progressBarContainer: {
+    height: 4,
     backgroundColor: COLORS.border,
-    marginHorizontal: 4,
+    borderRadius: 2,
+    marginBottom: 6,
+    overflow: 'hidden',
   },
-  progressDotActive: {
+  progressBarFill: {
+    height: '100%',
     backgroundColor: COLORS.primary,
-    width: 24,
+    borderRadius: 2,
   },
+  progressLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'right',
+    marginBottom: 16,
+  },
+
+  // Scroll area
+  stepScroll: { flex: 1 },
   stepContent: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
+
+  // Icon container
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: COLORS.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   stepTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text,
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   stepDescription: {
     fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    maxWidth: width * 0.85,
+    maxWidth: width * 0.88,
   },
+
   // Demo button
   demoButton: {
     flexDirection: 'row',
@@ -316,7 +493,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     paddingVertical: 14,
     paddingHorizontal: 28,
-    backgroundColor: '#E1306C',
+    backgroundColor: COLORS.primary,
     borderRadius: 14,
   },
   demoButtonDone: {
@@ -337,53 +514,156 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: width * 0.85,
   },
-  // Setup instructions
-  setupInstructions: {
+
+  // Per-app setup steps
+  stepsContainer: {
     alignSelf: 'stretch',
     marginTop: 20,
     marginBottom: 16,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
     backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
   },
-  setupStep: {
-    fontSize: 13,
-    color: COLORS.text,
-    lineHeight: 22,
-  },
-  urlList: {
-    alignSelf: 'stretch',
-    marginBottom: 12,
-  },
-  urlRow: {
-    flexDirection: 'row',
+  stepNumberCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 8,
-    marginBottom: 6,
+    marginRight: 12,
+    marginTop: 2,
   },
-  urlAppName: {
-    fontSize: 12,
+  stepNumber: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  stepInfo: {
+    flex: 1,
+  },
+  stepRowTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
-    width: 72,
+    marginBottom: 4,
+  },
+  stepDetail: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 19,
+  },
+  stepAction: {
+    marginTop: 8,
+  },
+  tapToExpand: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontStyle: 'italic',
+  },
+
+  // URL copy row
+  urlCopyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingLeft: 12,
+    paddingRight: 4,
+    paddingVertical: 4,
+    marginTop: 8,
   },
   urlText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     color: COLORS.primary,
   },
-  shortcutsButton: {
-    alignSelf: 'stretch',
-    marginTop: 4,
+  copyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primary + '12',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
+  copyBadgeDone: {
+    backgroundColor: COLORS.success ?? '#22c55e',
+  },
+  copyBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  copyBadgeTextDone: {
+    color: '#fff',
+  },
+
+  // Done button & badge
+  doneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.success ?? '#22c55e',
+    borderRadius: 12,
+  },
+  doneButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  doneBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  doneBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.success ?? '#22c55e',
+  },
+
+  // Warning box
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    maxWidth: width * 0.88,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#7B6C00',
+    lineHeight: 19,
+  },
+
   // Footer
-  footer: { paddingTop: 24 },
+  footer: { paddingTop: 16 },
   buttonRow: { flexDirection: 'row', marginBottom: 8 },
   backButton: { flex: 1, marginRight: 8 },
   nextButton: { flex: 2 },
