@@ -126,14 +126,12 @@ export const AppNavigator: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return null; // Or a loading screen
-  }
-
+  // Always render NavigationContainer so deep links are captured even during init.
+  // The initialRouteName is only used on first render; deep links override it.
   return (
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
-        initialRouteName={getInitialRoute()}
+        initialRouteName={isLoading ? 'MainTabs' : getInitialRoute()}
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
