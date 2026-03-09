@@ -9,5 +9,4 @@ export { HomeScreen } from './HomeScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { PromptScreen } from './PromptScreen';
 export { SatisfactionScreen } from './SatisfactionScreen';
-export { ShortcutsSetupScreen } from './ShortcutsSetupScreen';
 export { TestingScreen } from './TestingScreen';

@@ -12,6 +12,8 @@ interface TextInputProps {
   numberOfLines?: number;
   style?: ViewStyle;
   autoFocus?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'number-pad';
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -23,6 +25,8 @@ export const TextInput: React.FC<TextInputProps> = ({
   numberOfLines = 1,
   style,
   autoFocus = false,
+  autoCapitalize,
+  keyboardType,
 }) => {
   return (
     <PaperTextInput
@@ -37,6 +41,8 @@ export const TextInput: React.FC<TextInputProps> = ({
       outlineColor={COLORS.border}
       activeOutlineColor={COLORS.primary}
       autoFocus={autoFocus}
+      autoCapitalize={autoCapitalize}
+      keyboardType={keyboardType}
     />
   );
 };
