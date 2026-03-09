@@ -31,11 +31,9 @@ type TutorialScreenProps = {
 export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) => {
   const { updatePhase, user } = useStore();
 
-  const userTrackedIds = user?.settings?.trackedApps;
-  // Use user's selection if available and non-empty; otherwise fall back to defaults
-  const appsToSetUp = (userTrackedIds && userTrackedIds.length > 0)
-    ? SOCIAL_MEDIA_APPS.filter((app) => userTrackedIds.includes(app.id))
-    : SOCIAL_MEDIA_APPS.slice(0, 6);
+  const userTrackedIds = user?.settings?.trackedApps ?? [];
+  // Only show apps the user explicitly selected — never fall back to all apps
+  const appsToSetUp = SOCIAL_MEDIA_APPS.filter((app) => userTrackedIds.includes(app.id));
 
   // Total steps: demo + one per tracked app + ready
   const TOTAL_STEPS = 1 + appsToSetUp.length + 1;
@@ -110,6 +108,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
             <StepReady
               completedCount={completedApps.size}
               totalCount={appsToSetUp.length}
+              appNames={appsToSetUp.map((a) => a.name)}
             />
           )}
         </ScrollView>
@@ -137,8 +136,8 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
         </View>
       </View>
 
-      {/* Inline demo modal — avoids navigation issues */}
-      <DemoPromptModal visible={showDemoModal} onDismiss={handleDemoDismiss} />
+      {/* Inline demo modal — uses the first selected app */}
+      <DemoPromptModal visible={showDemoModal} onDismiss={handleDemoDismiss} app={appsToSetUp[0]} />
     </SafeAreaView>
   );
 };
@@ -195,12 +194,18 @@ function StepDemo({
 function DemoPromptModal({
   visible,
   onDismiss,
+  app,
 }: {
   visible: boolean;
   onDismiss: () => void;
+  app?: (typeof SOCIAL_MEDIA_APPS)[number];
 }) {
   const [response, setResponse] = useState('');
-  const questionText = MOTIVATION_PROMPT.question.replace('[platform]', 'Instagram');
+  const appName = app?.name ?? 'Instagram';
+  const appId = app?.id ?? 'instagram';
+  const appColor = APP_COLORS[appId] || '#E1306C';
+  const appIcon = ICON_MAP[appId] || 'instagram';
+  const questionText = MOTIVATION_PROMPT.question.replace('[platform]', appName);
 
   const handleSubmit = () => {
     setResponse('');
@@ -222,9 +227,9 @@ function DemoPromptModal({
         >
           {/* Top badge */}
           <View style={styles.demoModalTopBar}>
-            <View style={[styles.demoModalAppBadge, { backgroundColor: '#E1306C' }]}>
-              <MaterialCommunityIcons name="instagram" size={18} color="#fff" />
-              <Text style={styles.demoModalAppBadgeText}>Instagram</Text>
+            <View style={[styles.demoModalAppBadge, { backgroundColor: appColor }]}>
+              <MaterialCommunityIcons name={appIcon as any} size={18} color="#fff" />
+              <Text style={styles.demoModalAppBadgeText}>{appName}</Text>
             </View>
             <Text style={styles.demoModalLabel}>DEMO</Text>
           </View>
@@ -236,11 +241,11 @@ function DemoPromptModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={[styles.demoModalBigIcon, { backgroundColor: '#E1306C18' }]}>
-              <MaterialCommunityIcons name="instagram" size={48} color="#E1306C" />
+            <View style={[styles.demoModalBigIcon, { backgroundColor: appColor + '18' }]}>
+              <MaterialCommunityIcons name={appIcon as any} size={48} color={appColor} />
             </View>
 
-            <Text style={styles.demoModalTitle}>Before you open Instagram...</Text>
+            <Text style={styles.demoModalTitle}>Before you open {appName}...</Text>
             <Text style={styles.demoModalSubtitle}>{MOTIVATION_PROMPT.intro}</Text>
             <Text style={styles.demoModalQuestion}>{questionText}</Text>
 
@@ -259,7 +264,7 @@ function DemoPromptModal({
             {/* Buttons inside scroll so they're always below content */}
             <View style={styles.demoModalBottom}>
               <Button
-                title="Continue to Instagram"
+                title={`Continue to ${appName}`}
                 onPress={handleSubmit}
                 disabled={!response.trim()}
               />
@@ -393,15 +398,15 @@ function StepAppSetup({
     },
     {
       title: 'Create a new Automation',
-      detail: `Tap the "Automation" tab at the bottom → tap the "+" button in the top-right → scroll down and choose "App" → find and select "${app.name}" → make sure "Is Opened" is checked → tap "Done" or "Next".`,
+      detail: `Tap the "Automation" tab at the bottom → tap "New Automation" (or the "+" button) → select "App" → search for and select "${app.name}" → make sure "Is Opened" is checked → tap "Done".`,
     },
     {
       title: 'Add the "Open URLs" action',
-      detail: `Choose "New Blank Automation" → tap "Add Action" → in the search bar type "Open URLs" → select the "Open URLs" action → tap the blue "URL" placeholder and paste the link you copied in step 1.`,
+      detail: `On iOS 17+: you'll see a blank action sheet — tap the search bar at the top, type "Open URLs", and select it. Tap the blue "URL" placeholder and paste the link you copied in step 1.`,
     },
     {
-      title: 'Finish and disable "Ask Before Running"',
-      detail: `Tap "Done" in the top right. If prompted, turn OFF "Ask Before Running" so the prompt shows automatically. Tap "Done" again to save.`,
+      title: 'Set to "Run Immediately"',
+      detail: `On iOS 17+: at the bottom of the automation, tap "Run Immediately" (not "Run After Confirmation"). On older iOS: turn OFF "Ask Before Running". Then tap "Done" to save.`,
     },
   ];
 
@@ -476,10 +481,15 @@ function DoneBadge({ appName }: { appName: string }) {
 function StepReady({
   completedCount,
   totalCount,
+  appNames,
 }: {
   completedCount: number;
   totalCount: number;
+  appNames: string[];
 }) {
+  const appList = appNames.length <= 2
+    ? appNames.join(' and ')
+    : appNames.slice(0, -1).join(', ') + ', and ' + appNames[appNames.length - 1];
   const allDone = completedCount === totalCount;
   return (
     <>
@@ -508,8 +518,8 @@ function StepReady({
         The study runs for{' '}
         <Text style={{ fontWeight: '700', color: COLORS.text }}>7 days</Text>. Here's what
         to expect:{'\n\n'}
-        <Text style={{ fontWeight: '700', color: COLORS.text }}>Use apps normally</Text> — Open
-        Instagram, TikTok, etc. from your home screen as you always do. A brief
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>Use apps normally</Text> — Open{' '}
+        {appList} from your home screen as you always do. A brief
         prompt will appear automatically before the app opens.{'\n\n'}
         <Text style={{ fontWeight: '700', color: COLORS.text }}>Prompts</Text> — Up to 15
         per day, with at least 1 hour between each.{'\n\n'}

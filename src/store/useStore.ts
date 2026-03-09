@@ -8,7 +8,7 @@ import {
   SamplingState,
   StudyGroup,
 } from '../types';
-import { APP_CONFIG, SOCIAL_MEDIA_APPS } from '../constants';
+import { APP_CONFIG } from '../constants';
 import {
   createUser,
   getUser,
@@ -104,7 +104,7 @@ export const useStore = create<AppState>()(
             const defaultSettings = {
               windowStart: APP_CONFIG.DEFAULT_WINDOW_START,
               windowEnd: APP_CONFIG.DEFAULT_WINDOW_END,
-              trackedApps: SOCIAL_MEDIA_APPS.slice(0, 6).map((app) => app.id),
+              trackedApps: [],
             };
 
             await createUser(userId, participantId, group, defaultSettings);

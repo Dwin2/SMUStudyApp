@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { MotivationPrompt, NeutralPrompt } from '../components/prompts';
 import { useStore } from '../store/useStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types';
 import { Linking } from 'react-native';
-import { SOCIAL_MEDIA_APPS } from '../constants';
+import { SOCIAL_MEDIA_APPS, COLORS } from '../constants';
 
 type PromptScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Prompt'>;
@@ -15,14 +15,19 @@ type PromptScreenProps = {
 
 export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route }) => {
   const { platform, sessionId, demo } = route.params;
-  const { user, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt, startAppSession } = useStore();
+  const { user, isLoading, saveMRPResponse, saveNPResponse, recordPromptShown, canShowPrompt, startAppSession } = useStore();
+  const initDone = useRef(false);
 
   const isTreatmentGroup = user?.group === 'treatment';
-  // Demo mode always shows; live mode checks sampling rules once on mount
-  const shouldShow = useRef(demo ? true : canShowPrompt()).current;
 
+  // Wait for user to load before evaluating sampling rules
   useEffect(() => {
-    // Register the session if opened via deep link (startAppSession wasn't called)
+    if (isLoading || initDone.current) return;
+    initDone.current = true;
+
+    const shouldShow = demo ? true : canShowPrompt();
+
+    // Register the session if opened via deep link
     if (!demo) {
       startAppSession(platform);
     }
@@ -35,7 +40,7 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
       recordPromptShown();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoading]);
 
   const handleMRPSubmit = async (response: string) => {
     if (!demo) await saveMRPResponse(platform, sessionId, response);
@@ -69,8 +74,13 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
     }
   };
 
-  if (!shouldShow) {
-    return null;
+  // Still loading — show a brief spinner so the deep link isn't lost
+  if (isLoading || !initDone.current) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
   }
 
   if (isTreatmentGroup) {
@@ -92,4 +102,11 @@ export const PromptScreen: React.FC<PromptScreenProps> = ({ navigation, route })
   );
 };
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+});

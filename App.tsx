@@ -13,6 +13,8 @@ import {
   setupNotificationListeners,
   scheduleScheduledSurveys,
 } from './src/services/notificationService';
+import { handleDeepLink } from './src/services/appUsageService';
+import { Linking } from 'react-native';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -104,20 +106,59 @@ export default function App() {
     return cleanup;
   }, []);
 
+  // Fallback deep link handler — catches links that React Navigation's
+  // automatic linking misses (e.g. cold start in Expo Go).
+  useEffect(() => {
+    function navigateToPrompt(platform: string, sessionId: string) {
+      // Skip if React Navigation's automatic linking already handled it
+      if (navigationRef.isReady()) {
+        const current = navigationRef.getCurrentRoute();
+        if (current?.name === 'Prompt') return;
+        navigationRef.navigate('Prompt', { platform, sessionId });
+      } else {
+        // Navigation not ready yet — retry once it is
+        const interval = setInterval(() => {
+          if (navigationRef.isReady()) {
+            clearInterval(interval);
+            const current = navigationRef.getCurrentRoute();
+            if (current?.name === 'Prompt') return;
+            navigationRef.navigate('Prompt', { platform, sessionId });
+          }
+        }, 200);
+        // Give up after 5 seconds
+        setTimeout(() => clearInterval(interval), 5000);
+      }
+    }
+
+    // Check if the app was opened via a deep link (cold start)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        const result = handleDeepLink(url);
+        if (result) {
+          navigateToPrompt(result.platform, result.sessionId);
+        }
+      }
+    });
+
+    // Listen for deep links while the app is running (warm start)
+    const subscription = Linking.addEventListener('url', (event) => {
+      const result = handleDeepLink(event.url);
+      if (result) {
+        navigateToPrompt(result.platform, result.sessionId);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   const onLayoutRootView = useCallback(async () => {
     if (appIsReady) {
       await SplashScreen.hideAsync();
     }
   }, [appIsReady]);
 
-  if (!appIsReady || isLoading) {
-    return (
-      <SafeAreaProvider>
-        <LoadingScreen />
-      </SafeAreaProvider>
-    );
-  }
-
+  // Always render AppNavigator so NavigationContainer is mounted and can
+  // receive deep links. The navigator handles its own loading state.
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <PaperProvider theme={theme}>
