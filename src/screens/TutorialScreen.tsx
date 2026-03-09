@@ -29,11 +29,15 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
   const { updatePhase, startAppSession, user } = useStore();
 
   const trackedApps = SOCIAL_MEDIA_APPS.filter((app) =>
-    user?.settings.trackedApps.includes(app.id)
+    user?.settings?.trackedApps?.includes(app.id)
   );
+  // Fallback: if trackedApps empty (user not loaded / no selection), use first 6
+  const appsToSetUp = trackedApps.length > 0
+    ? trackedApps
+    : SOCIAL_MEDIA_APPS.slice(0, 6);
 
   // Total steps: demo + one per tracked app + ready
-  const TOTAL_STEPS = 1 + trackedApps.length + 1;
+  const TOTAL_STEPS = 1 + appsToSetUp.length + 1;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [demoTried, setDemoTried] = useState(false);
@@ -68,7 +72,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
 
   const isLastStep = currentStep === TOTAL_STEPS - 1;
   const isAppStep = currentStep >= 1 && currentStep < TOTAL_STEPS - 1;
-  const currentApp = isAppStep ? trackedApps[currentStep - 1] : null;
+  const currentApp = isAppStep ? appsToSetUp[currentStep - 1] : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,7 +104,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
           {isLastStep && (
             <StepReady
               completedCount={completedApps.size}
-              totalCount={trackedApps.length}
+              totalCount={appsToSetUp.length}
             />
           )}
         </ScrollView>

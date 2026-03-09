@@ -150,13 +150,14 @@ export const AppNavigator: React.FC = () => {
         {/* Main App */}
         <Stack.Screen name="MainTabs" component={MainTabs} />
 
-        {/* Prompt Screens (Modal style) */}
+        {/* Prompt Screens (Full-screen lock screen style) */}
         <Stack.Screen
           name="Prompt"
           component={PromptScreen}
           options={{
-            presentation: 'containedModal',
+            presentation: 'fullScreenModal',
             animation: 'fade',
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen
