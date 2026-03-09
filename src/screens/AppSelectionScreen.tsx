@@ -13,9 +13,8 @@ type AppSelectionScreenProps = {
 
 export const AppSelectionScreen: React.FC<AppSelectionScreenProps> = ({ navigation }) => {
   const { user, updateSettings } = useStore();
-  const [selectedApps, setSelectedApps] = useState<string[]>(
-    user?.settings.trackedApps || SOCIAL_MEDIA_APPS.slice(0, 6).map((app) => app.id)
-  );
+  // Start empty so the user actively picks only the apps they use
+  const [selectedApps, setSelectedApps] = useState<string[]>([]);
 
   const toggleApp = (appId: string) => {
     setSelectedApps((prev) =>

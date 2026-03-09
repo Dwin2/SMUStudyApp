@@ -10,10 +10,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
+  TextInput as RNTextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Button } from '../components/common';
-import { COLORS, SOCIAL_MEDIA_APPS } from '../constants';
+import { COLORS, SOCIAL_MEDIA_APPS, MOTIVATION_PROMPT } from '../constants';
 import { useStore } from '../store/useStore';
 import { getDeepLinkURL } from '../services/appUsageService';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,7 +29,7 @@ type TutorialScreenProps = {
 
 // Steps: 0 = Demo, 1..N = one per tracked app (Shortcuts setup), N+1 = Ready
 export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) => {
-  const { updatePhase, startAppSession, user } = useStore();
+  const { updatePhase, user } = useStore();
 
   const userTrackedIds = user?.settings?.trackedApps;
   // Use user's selection if available and non-empty; otherwise fall back to defaults
@@ -39,6 +42,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
 
   const [currentStep, setCurrentStep] = useState(0);
   const [demoTried, setDemoTried] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [completedApps, setCompletedApps] = useState<Set<string>>(new Set());
 
   const handleNext = () => {
@@ -59,9 +63,12 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
   };
 
   const handleDemoTap = () => {
-    const sessionId = startAppSession('instagram');
+    setShowDemoModal(true);
+  };
+
+  const handleDemoDismiss = () => {
+    setShowDemoModal(false);
     setDemoTried(true);
-    navigation.navigate('Prompt', { platform: 'instagram', sessionId, demo: true });
   };
 
   const markAppDone = useCallback((appId: string) => {
@@ -129,6 +136,9 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ navigation }) =>
           )}
         </View>
       </View>
+
+      {/* Inline demo modal — avoids navigation issues */}
+      <DemoPromptModal visible={showDemoModal} onDismiss={handleDemoDismiss} />
     </SafeAreaView>
   );
 };
@@ -180,6 +190,85 @@ function StepDemo({
   );
 }
 
+// ── Inline demo prompt modal ────────────────────────────────────────────────
+
+function DemoPromptModal({
+  visible,
+  onDismiss,
+}: {
+  visible: boolean;
+  onDismiss: () => void;
+}) {
+  const [response, setResponse] = useState('');
+  const questionText = MOTIVATION_PROMPT.question.replace('[platform]', 'Instagram');
+
+  const handleSubmit = () => {
+    setResponse('');
+    onDismiss();
+  };
+
+  const handleSkip = () => {
+    setResponse('');
+    onDismiss();
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent={false}>
+      <SafeAreaView style={styles.demoModalContainer}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          {/* Top badge */}
+          <View style={styles.demoModalTopBar}>
+            <View style={[styles.demoModalAppBadge, { backgroundColor: '#E1306C' }]}>
+              <MaterialCommunityIcons name="instagram" size={18} color="#fff" />
+              <Text style={styles.demoModalAppBadgeText}>Instagram</Text>
+            </View>
+            <Text style={styles.demoModalLabel}>DEMO</Text>
+          </View>
+
+          {/* Content */}
+          <View style={styles.demoModalCenter}>
+            <View style={[styles.demoModalBigIcon, { backgroundColor: '#E1306C18' }]}>
+              <MaterialCommunityIcons name="instagram" size={48} color="#E1306C" />
+            </View>
+
+            <Text style={styles.demoModalTitle}>Before you open Instagram...</Text>
+            <Text style={styles.demoModalSubtitle}>{MOTIVATION_PROMPT.intro}</Text>
+            <Text style={styles.demoModalQuestion}>{questionText}</Text>
+
+            <View style={styles.demoModalInputWrapper}>
+              <RNTextInput
+                value={response}
+                onChangeText={setResponse}
+                placeholder="Share your thoughts..."
+                multiline
+                numberOfLines={3}
+                autoFocus
+                style={styles.demoModalInput}
+                placeholderTextColor="#999"
+              />
+            </View>
+
+            <Text style={styles.demoModalNote}>{MOTIVATION_PROMPT.note}</Text>
+          </View>
+
+          {/* Bottom buttons */}
+          <View style={styles.demoModalBottom}>
+            <Button
+              title="Continue to Instagram"
+              onPress={handleSubmit}
+              disabled={!response.trim()}
+            />
+            <Button title="Skip" onPress={handleSkip} mode="text" />
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 // ── Per-app Shortcuts setup step ─────────────────────────────────────────────
 
 const ICON_MAP: Record<string, string> = {
@@ -225,7 +314,11 @@ function StepAppSetup({
   };
 
   const handleOpenShortcuts = () => {
-    Linking.openURL('shortcuts://create-automation');
+    // shortcuts:// opens the Shortcuts app; there's no direct "create automation" URL
+    Linking.openURL('shortcuts://').catch(() => {
+      // Fallback: just open the app store page for Shortcuts
+      Alert.alert('Open Shortcuts', 'Open the Shortcuts app from your home screen, then tap the "Automation" tab at the bottom.');
+    });
   };
 
   const handleMarkDone = () => {
@@ -297,15 +390,15 @@ function StepAppSetup({
     },
     {
       title: 'Create a new Automation',
-      detail: `Tap the Automation tab → tap + → choose "App" → select "${app.name}" → make sure "Is Opened" is checked → tap Next.`,
+      detail: `Tap the "Automation" tab at the bottom → tap the "+" button in the top-right → scroll down and choose "App" → find and select "${app.name}" → make sure "Is Opened" is checked → tap "Done" or "Next".`,
     },
     {
-      title: 'Add the "Open URL" action',
-      detail: `Tap "New Blank Automation" → tap "Add Action" → search for "Open URL" → tap the blue "URL" text and paste the link you copied in step 1.`,
+      title: 'Add the "Open URLs" action',
+      detail: `Choose "New Blank Automation" → tap "Add Action" → in the search bar type "Open URLs" → select the "Open URLs" action → tap the blue "URL" placeholder and paste the link you copied in step 1.`,
     },
     {
-      title: 'Turn off "Ask Before Running"',
-      detail: `Tap "Done" in the top right. When asked, turn OFF "Ask Before Running" so the prompt appears instantly. Then tap "Done" again.`,
+      title: 'Finish and disable "Ask Before Running"',
+      detail: `Tap "Done" in the top right. If prompted, turn OFF "Ask Before Running" so the prompt shows automatically. Tap "Done" again to save.`,
     },
   ];
 
@@ -669,4 +762,107 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', marginBottom: 8 },
   backButton: { flex: 1, marginRight: 8 },
   nextButton: { flex: 2 },
+
+  // Demo modal
+  demoModalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
+  demoModalTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 10,
+  },
+  demoModalAppBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  demoModalAppBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  demoModalLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+    backgroundColor: COLORS.primary + '18',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  demoModalCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+  },
+  demoModalBigIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  demoModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  demoModalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    maxWidth: width * 0.85,
+  },
+  demoModalQuestion: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 16,
+    maxWidth: width * 0.85,
+  },
+  demoModalInputWrapper: {
+    alignSelf: 'stretch',
+    marginBottom: 8,
+  },
+  demoModalInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: COLORS.text,
+    backgroundColor: '#fff',
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  demoModalNote: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 17,
+    maxWidth: width * 0.85,
+  },
+  demoModalBottom: {
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    paddingTop: 8,
+  },
 });
