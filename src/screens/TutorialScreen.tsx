@@ -216,8 +216,9 @@ function DemoPromptModal({
     <Modal visible={visible} animationType="fade" transparent={false}>
       <SafeAreaView style={styles.demoModalContainer}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
+          keyboardVerticalOffset={0}
         >
           {/* Top badge */}
           <View style={styles.demoModalTopBar}>
@@ -228,8 +229,13 @@ function DemoPromptModal({
             <Text style={styles.demoModalLabel}>DEMO</Text>
           </View>
 
-          {/* Content */}
-          <View style={styles.demoModalCenter}>
+          {/* Scrollable content so nothing overlaps when keyboard is open */}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.demoModalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <View style={[styles.demoModalBigIcon, { backgroundColor: '#E1306C18' }]}>
               <MaterialCommunityIcons name="instagram" size={48} color="#E1306C" />
             </View>
@@ -238,31 +244,28 @@ function DemoPromptModal({
             <Text style={styles.demoModalSubtitle}>{MOTIVATION_PROMPT.intro}</Text>
             <Text style={styles.demoModalQuestion}>{questionText}</Text>
 
-            <View style={styles.demoModalInputWrapper}>
-              <RNTextInput
-                value={response}
-                onChangeText={setResponse}
-                placeholder="Share your thoughts..."
-                multiline
-                numberOfLines={3}
-                autoFocus
-                style={styles.demoModalInput}
-                placeholderTextColor="#999"
-              />
-            </View>
+            <RNTextInput
+              value={response}
+              onChangeText={setResponse}
+              placeholder="Share your thoughts..."
+              multiline
+              numberOfLines={3}
+              style={styles.demoModalInput}
+              placeholderTextColor="#999"
+            />
 
             <Text style={styles.demoModalNote}>{MOTIVATION_PROMPT.note}</Text>
-          </View>
 
-          {/* Bottom buttons */}
-          <View style={styles.demoModalBottom}>
-            <Button
-              title="Continue to Instagram"
-              onPress={handleSubmit}
-              disabled={!response.trim()}
-            />
-            <Button title="Skip" onPress={handleSkip} mode="text" />
-          </View>
+            {/* Buttons inside scroll so they're always below content */}
+            <View style={styles.demoModalBottom}>
+              <Button
+                title="Continue to Instagram"
+                onPress={handleSubmit}
+                disabled={!response.trim()}
+              />
+              <Button title="Skip" onPress={handleSkip} mode="text" />
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -799,11 +802,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden',
   },
-  demoModalCenter: {
-    flex: 1,
-    justifyContent: 'center',
+  demoModalScrollContent: {
     alignItems: 'center',
     paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
   demoModalBigIcon: {
     width: 96,
@@ -837,11 +840,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     maxWidth: width * 0.85,
   },
-  demoModalInputWrapper: {
-    alignSelf: 'stretch',
-    marginBottom: 8,
-  },
   demoModalInput: {
+    alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -851,6 +851,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     minHeight: 80,
     textAlignVertical: 'top',
+    marginBottom: 12,
   },
   demoModalNote: {
     fontSize: 12,
@@ -859,10 +860,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 17,
     maxWidth: width * 0.85,
+    marginBottom: 24,
   },
   demoModalBottom: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    paddingTop: 8,
+    alignSelf: 'stretch',
   },
 });
